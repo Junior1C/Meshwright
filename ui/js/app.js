@@ -688,17 +688,22 @@ document.addEventListener('DOMContentLoaded', () => {
         if (tag === 'select' || tag === 'textarea') return;
         const ctrl = e.ctrlKey || e.metaKey;
         const k = e.key.toLowerCase();
+        // Physical key position, not the printed letter: with a Russian layout
+        // Ctrl+O arrives as e.key 'ь', so letter shortcuts must not depend on it.
+        // Fall back to the letter for keyboards that report no code at all.
+        const code = e.code || '';
+        const key = (c, letter) => code === c || k === letter;
         const fire = id => { const b = $(id); if (b && !b.disabled && !b.classList.contains('hidden')) b.click(); };
-        if (ctrl && !e.shiftKey && k === 'z') { e.preventDefault(); fire('btnUndo'); }
-        else if (ctrl && (k === 'y' || (e.shiftKey && k === 'z'))) { e.preventDefault(); fire('btnRedo'); }
-        else if (ctrl && k === 'o') { e.preventDefault(); fire('btnOpen'); }
-        else if (ctrl && e.shiftKey && k === 's') { e.preventDefault(); fire('btnReport'); }
-        else if (ctrl && k === 's') { e.preventDefault(); fire('btnExport'); }
-        else if (ctrl && k === 'r') { e.preventDefault(); fire('btnRepair'); }
-        else if (ctrl && k === 'u') { e.preventDefault(); fire('btnReanalyse'); }
-        else if (ctrl && k === 'a') { if (!$('cardShells').classList.contains('hidden')) { e.preventDefault(); fire('btnShellsAll'); } }
-        else if (ctrl && k === '`') { e.preventDefault(); fire('btnConsole'); }
-        else if (ctrl && k === 'n') { e.preventDefault(); requestReset(false); }
+        if (ctrl && !e.shiftKey && key('KeyZ', 'z')) { e.preventDefault(); fire('btnUndo'); }
+        else if (ctrl && (key('KeyY', 'y') || (e.shiftKey && key('KeyZ', 'z')))) { e.preventDefault(); fire('btnRedo'); }
+        else if (ctrl && key('KeyO', 'o')) { e.preventDefault(); fire('btnOpen'); }
+        else if (ctrl && e.shiftKey && key('KeyS', 's')) { e.preventDefault(); fire('btnReport'); }
+        else if (ctrl && key('KeyS', 's')) { e.preventDefault(); fire('btnExport'); }
+        else if (ctrl && key('KeyR', 'r')) { e.preventDefault(); fire('btnRepair'); }
+        else if (ctrl && key('KeyU', 'u')) { e.preventDefault(); fire('btnReanalyse'); }
+        else if (ctrl && key('KeyA', 'a')) { if (!$('cardShells').classList.contains('hidden')) { e.preventDefault(); fire('btnShellsAll'); } }
+        else if (ctrl && (code === 'Backquote' || k === '`' || k === 'ё')) { e.preventDefault(); fire('btnConsole'); }
+        else if (ctrl && key('KeyN', 'n')) { e.preventDefault(); requestReset(false); }
         else if (ctrl) { return; }
         else if (k === 'delete' || k === 'backspace') {
             e.preventDefault();
@@ -713,11 +718,11 @@ document.addEventListener('DOMContentLoaded', () => {
             else fire('btnClearHl');
         }
         else if (k === '?') { showHelp(); }
-        else if (k === 'f') { fire('btnFit'); }
-        else if (k === 'w') { fire('btnWire'); }
-        else if (k === 'e') { fire('btnIssues'); }
-        else if (k === 'g') { fire('btnGrid'); }
-        else if (k === 'r') { fire('btnGizmo'); }
+        else if (key('KeyF', 'f')) { fire('btnFit'); }
+        else if (key('KeyW', 'w')) { fire('btnWire'); }
+        else if (key('KeyE', 'e')) { fire('btnIssues'); }
+        else if (key('KeyG', 'g')) { fire('btnGrid'); }
+        else if (key('KeyR', 'r')) { fire('btnGizmo'); }
         else if (/^[1-7]$/.test(k)) { window.viewer.setView(VIEWS[+k - 1]); }
     });
 

@@ -44,7 +44,7 @@ claude mcp add meshwright -- D:/path/to/Meshwright/.venv/Scripts/python.exe D:/p
 | `fix_slivers` | `min_angle_deg=1.0`, `force=false` | Схлопнуть иглы, перевернуть крышки |
 | `simplify` | `keep_fraction=0.5` , `force=false` | Quadric-децимация долей |
 | `retopologize` | `target_faces`, `method="quadriflow"`, `preserve_sharp=true`, `adaptive=true` | Умная ретопология / жёсткое упрощение до абсолютного числа граней |
-| `remove_shells` | `indices` | Удалить несвязанные куски по индексу (0 — самый большой) |
+| `remove_shells` | `indices` | Удалить несвязанные острова по индексу (0 — самый большой) |
 | `rotate` | `axis`, `degrees` | Повернуть вокруг центра модели |
 | `undo` / `redo` | — | Ходить между номерными состояниями |
 | `revert` | — | Назад к файлу как загружен |

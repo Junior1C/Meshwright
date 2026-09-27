@@ -41,6 +41,13 @@ body {
 .brand-name { font-weight: 600; font-size: 15px; letter-spacing: .2px; }
 .brand-studio { color: var(--muted); font-size: 12px; padding-left: 10px; border-left: 1px solid var(--line); }
 .topbar-actions { display: flex; align-items: center; gap: 14px; }
+/* Fixed widths, sized to the longer Russian labels, so switching EN/РУ
+   does not push the buttons around them. Text stays centered. */
+.topbar-actions #btnOpen { width: 142px; }
+.topbar-actions #btnConsole { width: 94px; }
+.topbar-actions #btnComfyUI { width: 128px; }
+.topbar-actions #btnNew { width: 80px; }
+.topbar-actions .seg.small button { width: 78px; padding-left: 0; padding-right: 0; }
 .file-name { color: var(--muted); font-family: var(--mono); font-size: 12px; max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Layout */
@@ -182,7 +189,8 @@ body.resizing #webgl { pointer-events: none; }
 .btn.wide { width: 100%; margin-top: 8px; }
 
 .row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-.row > span:first-child { color: var(--muted); width: 48px; }
+/* Wide enough for "Шероховатость" etc.: the slider shrinks instead of overlapping. */
+.row > span:first-child { color: var(--muted); width: 96px; flex-shrink: 0; }
 .row.two { display: grid; grid-template-columns: 1fr 1fr; align-items: end; }
 .row label { display: flex; flex-direction: column; gap: 4px; color: var(--muted); font-size: 12px; }
 .hint { color: var(--muted); font-size: 12px; }

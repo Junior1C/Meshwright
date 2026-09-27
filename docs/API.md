@@ -45,7 +45,7 @@ MeshService(log=None, autosave=True, progress=None)
 
 | Метод | Возвращает |
 |---|---|
-| `load(path)` | Полный итог: анализ, статистика, куски, превью, id состояния |
+| `load(path)` | Полный итог: анализ, статистика, острова, превью, id состояния |
 | `load_demo()` | То же для встроенного тестового объекта — файл не нужен |
 | `analyze()` | Свежая диагностика текущей сетки |
 | `repair(strict_watertight=True, force=False)` | Итог + `report` с `fixes`, `changes`, `passes` |
@@ -78,7 +78,7 @@ MeshService(log=None, autosave=True, progress=None)
 
 - `svc.mesh` — текущий `trimesh.Trimesh`
 - `svc.current` — текущее состояние (`id`, `mesh`, `analysis`, `operation`, `shells`)
-- `svc.shells` — список `trimesh.Trimesh`, когда в модели несколько кусков
+- `svc.shells` — список `trimesh.Trimesh`, когда в модели несколько островов
 - `svc.original` — нетронутая копия загруженного файла
 - `svc.history` — журнал принятых операций
 
@@ -136,14 +136,14 @@ from engine.model_loader  import load_model
 ## Текстуры и вьюпорт
 
 ```python
-svc.load("dragon.fbx")          # УФ и PBR-карты приезжают с моделью
-svc.corner_uv                   # (F, 3, 2) УФ по углам граней, или None
+svc.load("dragon.fbx")          # UV и PBR-карты приезжают с моделью
+svc.corner_uv                   # (F, 3, 2) UV по углам граней, или None
 svc.unwrap_uvs()                # построить раскладку; молча затирать существующую отказывается
 svc.unwrap_uvs(force=True)      # ...пока не скажете
 svc.get_texture_state()         # что есть: каналы, версия, has_uv — без пикселей
 svc.get_texture_maps()          # base64-карты, имеет смысл, только когда версия сдвинулась
-svc.get_uv_layout()             # края в УФ-пространстве для 2D-вида
-svc.export_texture_pack(folder) # все каналы плюс УФ-подложка, швы залиты
+svc.get_uv_layout()             # края в UV-пространстве для 2D-вида
+svc.export_texture_pack(folder) # все каналы плюс UV-подложка, швы залиты
 svc.bake_and_export_glb(path)   # один самодостаточный файл
 ```
 
