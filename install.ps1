@@ -165,7 +165,28 @@ if ($Global) {
                    "Close Meshwright and any terminal using it, then run install.bat again.")
         }
     }
-    if (Test-Path (Join-Path $venv "Scripts\python.exe")) {
+    # The folder is meant to be mobile: a .venv records absolute paths, so one
+    # built in another location is stale (its console scripts point at the old
+    # place). A moved folder rebuilds instead of being reused.
+    $vpyExists = Test-Path (Join-Path $venv "Scripts\python.exe")
+    if ($vpyExists -and -not $Recreate) {
+        $marked = ""
+        $markerFile = Join-Path $venv ".meshwright-root.txt"
+        if (Test-Path $markerFile) {
+            try { $marked = (Get-Content $markerFile -Raw).Trim() } catch { }
+        }
+        if ($marked -and ($marked.TrimEnd('\') -ine $root.TrimEnd('\'))) {
+            Say "[2/5] The project folder moved (was: $marked) - rebuilding the environment ..." Yellow
+            try {
+                Remove-Item $venv -Recurse -Force
+            } catch {
+                Fail @("Could not delete $venv.",
+                       "Close Meshwright and any terminal using it, then run install.bat again.")
+            }
+            $vpyExists = $false
+        }
+    }
+    if ($vpyExists) {
         Say "[2/5] Reusing the existing .venv ..." Yellow
     } else {
         Say "[2/5] Creating an isolated environment in .venv ..." Yellow
@@ -190,6 +211,12 @@ if ($Global) {
         Fail @("The environment was created but $py is missing.",
                "Run  install.bat -Recreate  to build it again from scratch.")
     }
+    # Stamp where this .venv was built and with what, so a moved folder is
+    # detected (see scripts\Ensure-Env.ps1) instead of silently reused.
+    try {
+        Set-Content -Path (Join-Path $venv ".meshwright-root.txt") -Value $root -Encoding ascii -ErrorAction Stop
+        Set-Content -Path (Join-Path $root ".meshwright-python.txt") -Value $interp.Path -Encoding ascii -ErrorAction Stop
+    } catch { }
 }
 
 Note "Installing with: $py"

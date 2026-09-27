@@ -1,22 +1,50 @@
 # Meshwright launcher — Geekatplay Studio.
-# Uses the isolated .venv the installer created; falls back to a discovered
-# system Python only if that .venv is missing, and says so.
+# Uses the isolated .venv the installer created. The project folder is mobile:
+# if it was moved (or the base Python is gone), the environment is recreated
+# automatically instead of failing halfway.
 $root = $PSScriptRoot
 if (-not $root) { $root = Split-Path -Parent $MyInvocation.MyCommand.Definition }
 
-$py = Join-Path $root ".venv\Scripts\python.exe"
+. (Join-Path $root "scripts\Find-Python.ps1")
+. (Join-Path $root "scripts\Ensure-Env.ps1")
 
-if (-not (Test-Path $py)) {
-    Write-Host "No .venv found - Meshwright has not been installed yet." -ForegroundColor Yellow
-    . (Join-Path $root "scripts\Find-Python.ps1")
-    $interp = Find-MWPython
-    if (-not $interp) {
-        Write-Host ""
-        Get-MWPythonHelp | ForEach-Object { Write-Host $_ -ForegroundColor Yellow }
+function Get-MWHealedPython {
+    param([string]$Root, [hashtable]$Checked)
+
+    $hintFile = Join-Path $Root ".meshwright-python.txt"
+    $hint = ""
+    if (Test-Path -LiteralPath $hintFile) {
+        try { $hint = (Get-Content -LiteralPath $hintFile -Raw -ErrorAction Stop).Trim() } catch { }
+    }
+
+    $installArgs = @('-Recreate', '-SkipComfyUI')
+    if ($hint -and (Test-MWPython -Path $hint)) {
+        # Same machine, folder just moved: reuse the interpreter it was built with.
+        $installArgs += @('-Python', $hint)
+    }
+    # Otherwise install.ps1 picks the best interpreter on this machine itself.
+
+    Write-Host ""
+    Write-Host "Environment needs setup: $($Checked.Reason)." -ForegroundColor Yellow
+    Write-Host "Recreating .venv for this location (takes a few minutes, needs internet) ..." -ForegroundColor Yellow
+    & (Join-Path $Root "install.ps1") @installArgs
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Automatic setup failed - run install.bat and read install-log.txt." -ForegroundColor Red
         exit 1
     }
-    Write-Host "Trying your system Python $($interp.Version) instead. Run install.bat for the proper setup." -ForegroundColor Yellow
-    $py = $interp.Path
+    $retried = Test-MWEnv -Root $Root
+    if (-not $retried.Ok) {
+        Write-Host "Setup finished but the environment still fails: $($retried.Reason)" -ForegroundColor Red
+        exit 1
+    }
+    return $retried.VenvPython
+}
+
+$checked = Test-MWEnv -Root $root
+if ($checked.Ok) {
+    $py = $checked.VenvPython
+} else {
+    $py = Get-MWHealedPython -Root $root -Checked $checked
 }
 
 Write-Host "Launching Meshwright..." -ForegroundColor Green

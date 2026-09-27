@@ -79,21 +79,26 @@ function Test-MWPython {
     if (-not $leaf -or $leaf -notmatch '^(?i)python[0-9.]*(\.exe)?$') { return $null }
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $null }
 
-    $probe = "import sys, importlib.util as u; print('MWPY|' + '|'.join([str(sys.version_info[0]), str(sys.version_info[1]), str(sys.version_info[2]), sys.executable, str(int(sys.maxsize > 2**32)), str(int(bool(u.find_spec('venv')) and bool(u.find_spec('ensurepip'))))]))"
+    $probe = "import sys, importlib.util as u, sysconfig as sc; print('MWPY|' + '|'.join([str(sys.version_info[0]), str(sys.version_info[1]), str(sys.version_info[2]), sys.executable, str(int(sys.maxsize > 2**32)), str(int(bool(u.find_spec('venv')) and bool(u.find_spec('ensurepip')))), sc.get_path('scripts')]))"
     $r = Invoke-MWNative -Exe $Path -Arguments @('-c', $probe)
     if ($r.ExitCode -ne 0) { return $null }
 
     $line = ($r.Output -split "`n" | Where-Object { $_ -like 'MWPY|*' } | Select-Object -First 1)
     if (-not $line) { return $null }
     $f = $line.Trim() -split '\|'
-    if ($f.Count -lt 7) { return $null }
+    if ($f.Count -lt 8) { return $null }
 
     $version = [Version]("{0}.{1}.{2}" -f $f[1], $f[2], $f[3])
+    # Embedded builds (e.g. the interpreter shipped inside Inkscape) create
+    # POSIX-style venvs (bin/ instead of Scripts/), which the installer and
+    # the launchers do not support. Only real Windows layouts qualify.
+    $goodLayout = ($f[7].Trim() -match '(?i)\\Scripts\s*$')
     return [pscustomobject]@{
         Path       = $f[4]
         Version    = $version
         Is64Bit    = ($f[5] -eq '1')
         HasVenv    = ($f[6] -eq '1')
+        GoodLayout = [bool]$goodLayout
         Supported  = ($version -ge $script:MW_MinPython)
         Preferred  = ($version -ge $script:MW_MinPython -and $version -le $script:MW_PreferredMax)
         IsStoreApp = ($f[4] -like '*\WindowsApps\*')
@@ -179,7 +184,7 @@ function Find-MWPython {
     $found = @()
     foreach ($p in Get-MWPythonCandidatePaths) {
         $info = Test-MWPython -Path $p
-        if ($info -and $info.Supported -and $info.HasVenv) { $found += $info }
+        if ($info -and $info.Supported -and $info.HasVenv -and $info.GoodLayout) { $found += $info }
     }
     if (-not $found) { return $null }
 

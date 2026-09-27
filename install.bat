@@ -5,11 +5,15 @@ cd /d "%~dp0"
 
 rem Find PowerShell. The full path is used first because a broken PATH is one of
 rem the reasons an installation fails in the first place.
+rem Find PowerShell by probing the known locations and actually running it.
+rem (No `where`: it rejects full paths as "invalid pattern", which used to
+rem report PowerShell as missing on machines that have it.)
 set "PS=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"
+if not exist "%PS%" set "PS=%SystemRoot%\Sysnative\WindowsPowerShell\v1.0\powershell.exe"
 if not exist "%PS%" set "PS=powershell.exe"
-where "%PS%" >nul 2>&1
+"%PS%" -NoProfile -Command "exit 0" >nul 2>&1
 if errorlevel 1 set "PS=pwsh.exe"
-where "%PS%" >nul 2>&1
+"%PS%" -NoProfile -Command "exit 0" >nul 2>&1
 if errorlevel 1 (
     echo.
     echo   [ERROR] Windows PowerShell was not found on this computer.
