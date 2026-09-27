@@ -1,35 +1,36 @@
-# Python API
+# Python API (RU)
 
-Everything the desktop app and the MCP server can do is a method on `MeshService`.
+Всё, что умеют десктоп и MCP-сервер, — методы `MeshService`.
 
 ```python
 from engine.service import MeshService
 
-svc = MeshService()                    # autosave=True by default
+svc = MeshService()                    # автосейв включён по умолчанию
 svc.load("miniature.stl")
 print(svc.current.analysis["verdict"])  # 'Repair required'
 
-svc.repair()                            # measured, verified, undoable
+svc.repair()                            # измерено, проверено, отменяется
 svc.fix_slivers(min_angle_deg=1.0)
 svc.retopo(20000, method="quadriflow")
 result = svc.export_model("miniature_print_ready.stl", "stl", scale_unit="mm", align_origin=True)
 for warning in result["result"]["warnings"]:
-    print(warning)                      # e.g. 'not a closed solid - 412 edges are open'
+    print(warning)                      # напр. 'not a closed solid - 412 edges are open'
 
 svc.export_report("miniature_report.json")
-svc.close()                             # clears the crash-recovery snapshots
+svc.close()                             # чистит снимки для восстановления после падений
 ```
 
-## Constructor
+Вердикты, предупреждения и журнал — на английском: это общий след аудита для десктопа, MCP и JSON-отчёта. Интерфейс десктопа переводит их на русский сам.
+
+## Конструктор
 
 ```python
 MeshService(log=None, autosave=True, progress=None)
 ```
 
-- `log(message, level)` — called for every step; `level` is `info` / `ok` / `warn` / `error`.
-  A logger that raises can never abort an operation.
-- `autosave` — write a background snapshot of every accepted state for crash recovery.
-- `progress(**event)` — called when a long operation starts and finishes:
+- `log(message, level)` — вызывается на каждом шаге; `level`: `info` / `ok` / `warn` / `error`. Падающий логгер никогда не роняет операцию.
+- `autosave` — писать фоновый снимок каждого принятого состояния для восстановления после падений.
+- `progress(**event)` — вызывается на старте и финише долгой операции:
 
   ```python
   {"state": "start", "operation": "retopo", "label": "Smart retopology to 50,000 faces",
@@ -37,92 +38,88 @@ MeshService(log=None, autosave=True, progress=None)
   {"state": "done",  "operation": "retopo", "label": "...", "elapsed": 88.4}
   ```
 
-  Use it to drive a progress bar or a status line. `engine.service.estimate_seconds(operation, faces)`
-  and `describe_duration(seconds)` are available on their own if you want the estimate without
-  running anything.
+  На нём едут прогресс-бар или строка статуса. `engine.service.estimate_seconds(operation, faces)`
+  и `describe_duration(seconds)` доступны отдельно, если нужна оценка без запуска.
 
-## Operations
+## Операции
 
-| Method | Returns |
+| Метод | Возвращает |
 |---|---|
-| `load(path)` | Full result: analysis, stats, shells, preview, state id |
-| `load_demo()` | The same, for the built-in test object — no file needed |
-| `analyze()` | Fresh diagnostics for the current mesh |
-| `repair(strict_watertight=True, force=False)` | Result + `report` with `fixes`, `changes`, `passes` |
-| `fix_slivers(min_angle_deg=1.0, force=False)` | Result + `info` (`before`, `after`, `collapsed`, `flipped`, `skipped`) |
-| `simplify(keep_fraction=0.5, force=False)` | Result + `info` including `deviation` |
-| `retopo(target_faces, method="quadriflow", preserve_sharp=True, adaptive=True)` | Result + `info` |
-| `remove_shells(indices)` | Result for the remaining geometry |
-| `rotate(matrix)` | `stats`, `centre`, `bounds` — no geometry payload |
-| `undo()` / `redo()` / `revert()` | Result for the state you land on |
+| `load(path)` | Полный итог: анализ, статистика, куски, превью, id состояния |
+| `load_demo()` | То же для встроенного тестового объекта — файл не нужен |
+| `analyze()` | Свежая диагностика текущей сетки |
+| `repair(strict_watertight=True, force=False)` | Итог + `report` с `fixes`, `changes`, `passes` |
+| `fix_slivers(min_angle_deg=1.0, force=False)` | Итог + `info` (`before`, `after`, `collapsed`, `flipped`, `skipped`) |
+| `simplify(keep_fraction=0.5, force=False)` | Итог + `info`, включая `deviation` |
+| `retopo(target_faces, method="quadriflow", preserve_sharp=True, adaptive=True)` | Итог + `info` |
+| `remove_shells(indices)` | Итог по оставшейся геометрии |
+| `rotate(matrix)` | `stats`, `centre`, `bounds` — без нагрузки геометрией |
+| `undo()` / `redo()` / `revert()` | Итог по состоянию, куда приземлились |
 | `state_list()` | `[{id, operation, verdict, score, faces}, …]` |
-| `export_model(path, export_format="stl", scale_unit="mm", align_origin=True)` | `{"result": {...}}` — format is stl, obj, ply, off, glb, gltf or 3mf |
-| `export_stl(path, scale_unit="mm", align_origin=True)` | The same, fixed to STL |
-| `report()` / `export_report(path)` | The full JSON report |
+| `export_model(path, export_format="stl", scale_unit="mm", align_origin=True)` | `{"result": {...}}` — формат stl, obj, ply, off, glb, gltf или 3mf |
+| `export_stl(path, scale_unit="mm", align_origin=True)` | То же, зафиксировано на STL |
+| `report()` / `export_report(path)` | Полный JSON-отчёт |
 
-### What an export returns
+### Что возвращает экспорт
 
-`result["result"]` describes the file that was written, and answers the question a slicer cannot ask:
+`result["result"]` описывает записанный файл и отвечает на вопрос, который слайсер задать не может:
 
-| Key | |
+| Ключ | |
 |---|---|
-| `is_solid` | `True` only when the mesh is watertight **and** encloses a volume |
-| `is_watertight`, `volume_cm3`, `avg_wall_mm` | The measurements behind that verdict |
-| `warnings` | Plain-English problems: not a closed solid, no volume, walls too thin to fill |
-| `format`, `filename`, `file_size_mb`, `face_count`, `vertex_count` | The file itself |
-| `dimensions_mm`, `bounds_min`, `bounds_max` | After unit scaling and build-plate alignment |
+| `is_solid` | `True`, только если сетка герметична **и** замыкает объём |
+| `is_watertight`, `volume_cm3`, `avg_wall_mm` | Замеры за вердиктом |
+| `warnings` | Проблемы plain-English — простым английским: не замкнутое тело, нет объёма, стенки тоньше заливки |
+| `format`, `filename`, `file_size_mb`, `face_count`, `vertex_count` | Сам файл |
+| `dimensions_mm`, `bounds_min`, `bounds_max` | После масштаба единиц и посадки на стол |
 
-An open surface is sliced as a single-wall shell with no infill, so treat a non-empty `warnings`
-list as a failed print waiting to happen. Inside-out meshes are corrected during export.
+Открытая поверхность режется одностеночной скорлупой без заполнения — непустой `warnings` читайте как несостоявшуюся печать. Вывернутые сетки при экспорте правятся.
 
-## Properties
+## Свойства
 
-- `svc.mesh` — the current `trimesh.Trimesh`
-- `svc.current` — the current state (`id`, `mesh`, `analysis`, `operation`, `shells`)
-- `svc.shells` — list of `trimesh.Trimesh` when the model has several pieces
-- `svc.original` — a pristine copy of the loaded file
-- `svc.history` — journal of accepted operations
+- `svc.mesh` — текущий `trimesh.Trimesh`
+- `svc.current` — текущее состояние (`id`, `mesh`, `analysis`, `operation`, `shells`)
+- `svc.shells` — список `trimesh.Trimesh`, когда в модели несколько кусков
+- `svc.original` — нетронутая копия загруженного файла
+- `svc.history` — журнал принятых операций
 
-## Errors
+## Ошибки
 
 ```python
-from engine.service import ServiceError        # no model loaded, impossible request
-from engine.validation import ValidationError  # bad path, bad number, bad matrix
+from engine.service import ServiceError        # нет загруженной модели, невозможный запрос
+from engine.validation import ValidationError  # плохой путь, число, матрица
 ```
 
-Both are exceptions here. The desktop and MCP adapters convert them to
+Здесь оба — исключения. Адаптеры десктопа и MCP превращают их в
 `{"success": false, "error": "..."}`.
 
-## The safety guard
+## Страховка
 
-Mutating calls run through `_commit`, which refuses a result that would increase the number of
-**critical** issues or discard more than 95 % of the geometry:
+Меняющие вызовы идут через `_commit`: итог отклоняется, если число
+**критичных** проблем выросло бы или потерялось бы больше 95% геометрии:
 
 ```python
 res = svc.repair()
 if not res["success"] and res.get("rejected"):
     print(res["reason"])            # 'critical problems would increase from 0 to 2'
-    res = svc.repair(force=True)    # apply anyway, deliberately
+    res = svc.repair(force=True)    # применить всё равно, осознанно
 ```
 
-`simplify` and `retopo` are exempt from the geometry-loss rule — dropping faces is the point — but
-they still verify the result and log a warning if new problems appear.
+`simplify` и `retopo` от правила потери геометрии освобождены — ронять грани их работа, — но итог всё равно проверяется, а о новых проблемах пишется в лог.
 
-`fix_slivers` reports `skipped`: slivers it refused to remove because the collapse or flip would
-have torn the surface. A few stubborn slivers are harmless; a hole is not.
+`fix_slivers` сообщает `skipped`: иголки, которые убирать отказались, — схлопывание или переворот порвали бы поверхность. Горсть упрямых иголок безвредна; дыра — нет.
 
-## Crash recovery
+## Восстановление после падений
 
 ```python
 for s in MeshService.recoverable_sessions():
     print(s["session"], s["source_file"], s["last"])
-svc.recover(session_id)             # restores the last good state
+svc.recover(session_id)             # возвращает последнее хорошее состояние
 MeshService.discard_session(session_id)
 ```
 
-## Lower-level modules
+## Модули пониже
 
-If you want a single algorithm without the state machine:
+Нужен один алгоритм без машины состояний:
 
 ```python
 from engine.mesh_analysis import analyze_mesh, compare_analyses
@@ -134,38 +131,35 @@ from engine.mesh_exporter import export_to_format, solidity_report
 from engine.model_loader  import load_model
 ```
 
-Each is pure: mesh in, mesh + report out. No global state, no UI.
+Каждый чист: сетка in, сетка + отчёт out. Ни общего состояния, ни UI.
 
-
-## Textures and the viewport
-
-```python
-svc.load("dragon.fbx")          # UVs and any PBR maps come with the model
-svc.corner_uv                   # (F, 3, 2) per-face-corner UVs, or None
-svc.unwrap_uvs()                # build a layout; refuses silently replacing an existing one
-svc.unwrap_uvs(force=True)      # ... unless you say so
-svc.get_texture_state()         # what exists: channels, version, has_uv — no pixels
-svc.get_texture_maps()          # the base64 maps, only worth calling when the version moved
-svc.get_uv_layout()             # UV-space edges for a 2D view
-svc.export_texture_pack(folder) # every channel plus a UV guide, gutters padded
-svc.bake_and_export_glb(path)   # one self-contained file
-```
-
-Texture coordinates live in a per-face-corner array beside the mesh, never inside it, so the
-geometry stays welded and the diagnostics measure the real thing. `_commit()` carries the channel
-onto whatever an operation returns — by reindexing when the faces were only permuted, and by
-re-projecting onto the old surface when the geometry genuinely changed.
+## Текстуры и вьюпорт
 
 ```python
-svc.preview_max_faces = 900_000     # when the viewport starts drawing a simplified copy
-svc.set_preview_detail(0.5)         # draw half the model
-svc.set_preview_detail(1.0)         # draw all of it
-svc.set_preview_detail(None)        # let Meshwright choose
+svc.load("dragon.fbx")          # УФ и PBR-карты приезжают с моделью
+svc.corner_uv                   # (F, 3, 2) УФ по углам граней, или None
+svc.unwrap_uvs()                # построить раскладку; молча затирать существующую отказывается
+svc.unwrap_uvs(force=True)      # ...пока не скажете
+svc.get_texture_state()         # что есть: каналы, версия, has_uv — без пикселей
+svc.get_texture_maps()          # base64-карты, имеет смысл, только когда версия сдвинулась
+svc.get_uv_layout()             # края в УФ-пространстве для 2D-вида
+svc.export_texture_pack(folder) # все каналы плюс УФ-подложка, швы залиты
+svc.bake_and_export_glb(path)   # один самодостаточный файл
 ```
 
-Viewport detail changes what is drawn and nothing else: the mesh, every measurement and every
-export always use all of it.
+Текстурные координаты живут в массиве по углам граней рядом с сеткой, никогда внутри: геометрия остаётся сваренной, а диагностика меряет настоящее. `_commit()` переносит канал на всё, что возвращает операция, — переиндексацией, если грани только переставились, и перепроекцией на старую поверхность, если геометрия правда изменилась.
 
 ```python
-svc.clear()                     # empty the workspace: mesh, history, snapshot and textures
+svc.preview_max_faces = 900_000     # с этого места вьюпорт рисует упрощённую копию
+svc.set_preview_detail(0.5)         # рисовать половину модели
+svc.set_preview_detail(1.0)         # рисовать всё
+svc.set_preview_detail(None)        # пусть Meshwright решит сам
 ```
+
+Детализация вьюпорта меняет, что рисуется, и ничего больше: сетка, каждый замер и каждый экспорт всегда идут по всему.
+
+```python
+svc.clear()                     # пустое рабочее место: сетка, история, снимок и текстуры
+```
+
+Оригинал на английском: [API.en.md](API.en.md).

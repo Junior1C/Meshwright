@@ -43,7 +43,7 @@
 
     const text = s => String(s == null ? '' : s).replace(/[&<>"']/g,
         c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    const count = n => n.toLocaleString();
+    const count = n => I18N.num(n);
     const pause = ms => new Promise(r => setTimeout(r, ms));
 
     /*
@@ -69,9 +69,9 @@
                 ${kind === 'recent' ? '&#9733;' : kind === 'drive' ? '&#128190;' : '&#128193;'}
                 <span>${text(label)}</span>
              </button>`;
-        const parts = [item('Recent', '', 'recent', atRecent)];
+        const parts = [item(T('browser.recent'), '', 'recent', atRecent)];
         for (const f of places.folders) parts.push(item(f.label, f.path, 'folder', !atRecent && sameFolder(f.path, folder)));
-        if (places.drives.length) parts.push('<div class="place-head">This PC</div>');
+        if (places.drives.length) parts.push(`<div class="place-head">${T('browser.thisPc')}</div>`);
         for (const d of places.drives) parts.push(item(d.label, d.path, 'drive', !atRecent && sameFolder(d.path, folder)));
         $('browserPlaces').innerHTML = parts.join('');
         for (const b of $('browserPlaces').querySelectorAll('.place')) {
@@ -83,7 +83,7 @@
 
     /* ---------- the list in the middle ---------- */
     function rowHtml(entry, index) {
-        const meta = entry.is_dir ? 'Folder'
+        const meta = entry.is_dir ? T('browser.folder')
             : (entry.folder ? text(entry.folder) : `${entry.ext.replace('.', '').toUpperCase()} · ${entry.size_text}`);
         return `<div class="browse-row${index === selected ? ' selected' : ''}" data-i="${index}">
                     <span class="row-thumb" data-thumb="${text(entry.path)}">${entry.is_dir ? FOLDER_ICON : MODEL_ICON}</span>
@@ -98,7 +98,7 @@
         entries.forEach((e, i) => { if (!filter || e.name.toLowerCase().includes(filter)) shown.push([e, i]); });
         const list = $('browserList');
         if (!shown.length) {
-            list.innerHTML = `<p class="browse-empty">${filter ? 'Nothing here matches that.' : 'No models in this folder.'}</p>`;
+            list.innerHTML = `<p class="browse-empty">${filter ? T('browser.noMatch') : T('browser.noModels')}</p>`;
         } else {
             list.innerHTML = shown.map(([e, i]) => rowHtml(e, i)).join('');
             for (const row of list.querySelectorAll('.browse-row')) {
@@ -115,8 +115,8 @@
         const models = entries.filter(e => !e.is_dir).length;
         const folders = entries.length - models;
         $('browserCount').textContent = atRecent
-            ? `${count(models)} recently opened`
-            : `${count(models)} model${models === 1 ? '' : 's'}${folders ? `, ${count(folders)} folder${folders === 1 ? '' : 's'}` : ''}`;
+            ? T('browser.recentN', { n: count(models) })
+            : `${Tp('pl.models', models, { n: count(models) })}${folders ? `, ${Tp('pl.folders', folders, { n: count(folders) })}` : ''}`;
     }
 
     function select(index) {
@@ -152,22 +152,24 @@
     }
 
     /* ---------- the preview on the right ---------- */
+    let lastPreview = null;
     function showPreview(info) {
+        lastPreview = info;
         const box = $('browserPreview');
         if (!info) {
-            box.innerHTML = '<p class="browse-empty">Pick a file to see what is in it.</p>';
+            box.innerHTML = `<p class="browse-empty">${T('browser.pickFile')}</p>`;
             return;
         }
         if (info.folderName) {
             box.innerHTML = `<div class="preview-shot folder">${FOLDER_ICON}</div>
                              <div class="preview-name">${text(info.folderName)}</div>
-                             <p class="hint">Double-click to look inside.</p>`;
+                             <p class="hint">${T('browser.dblFolder')}</p>`;
             return;
         }
         if (info.pending) {
             box.innerHTML = `<div class="preview-shot"><div class="preview-spin"></div></div>
                              <div class="preview-name">${text(info.name)}</div>
-                             <p class="hint">Looking inside…</p>`;
+                             <p class="hint">${T('browser.looking')}</p>`;
             return;
         }
         if (info.success === false || (!info.format && !info.note)) {
@@ -175,21 +177,21 @@
             // plainly rather than showing an empty panel that looks like a hang.
             box.innerHTML = `<div class="preview-shot"><div class="preview-none">${MODEL_ICON}</div></div>
                              <div class="preview-name">${text(info.name || '')}</div>
-                             <p class="preview-note">${text(info.error || 'This file could not be read.')}</p>`;
+                             <p class="preview-note">${text(info.error || T('browser.unreadable'))}</p>`;
             return;
         }
         const d = info.dimensions;
         const rows = [];
-        if (info.format) rows.push(['Kind', text(info.format)]);
-        rows.push(['Size on disk', text(info.size_text || '')]);
-        if (info.faces) rows.push(['Triangles', count(info.faces)]);
+        if (info.format) rows.push([T('browser.kind'), text(info.format)]);
+        rows.push([T('browser.disk'), text(info.size_text || '')]);
+        if (info.faces) rows.push([T('browser.tris'), count(info.faces)]);
         if (d) {
-            rows.push(['Dimensions', `${d.approx ? '≈ ' : ''}${d.x} × ${d.y} × ${d.z} ${d.unit}`
-                + (d.odd_scale ? ' <span class="preview-flag" title="No 3D format records what its numbers mean. Meshwright reads them as millimetres, as it does everywhere else — this model may have been saved in other units.">units?</span>' : '')]);
+            rows.push([T('browser.dims'), `${d.approx ? '≈ ' : ''}${d.x} × ${d.y} × ${d.z} ${d.unit}`
+                + (d.odd_scale ? ` <span class="preview-flag" title="${T('browser.unitsTitle')}">${T('browser.unitsQ')}</span>` : '')]);
         }
-        if (info.textures) rows.push(['Textures', count(info.textures)]);
-        if (info.modified) rows.push(['Changed', text(info.modified)]);
-        if (info.load_estimate) rows.push(['Opens in', text(info.load_estimate)]);
+        if (info.textures) rows.push([T('browser.textures'), count(info.textures)]);
+        if (info.modified) rows.push([T('browser.changed'), text(info.modified)]);
+        if (info.load_estimate) rows.push([T('browser.opensIn'), text(info.load_estimate)]);
 
         box.innerHTML = `
             <div class="preview-shot">${info.picture
@@ -209,7 +211,7 @@
         try {
             info = await foreground(() => api().browse_look(entry.path));
         } catch (e) {
-            info = { name: entry.name, path: entry.path, note: 'This file could not be read.' };
+            info = { name: entry.name, path: entry.path, note: T('browser.unreadable') };
         }
         if (mine !== lookToken) return;                 // the user has moved on
         looked.set(entry.path, info);
@@ -252,12 +254,12 @@
         thumbRun++;
         atRecent = false;
         looked = new Map();
-        $('browserList').innerHTML = '<p class="browse-empty">Reading the folder…</p>';
+        $('browserList').innerHTML = `<p class="browse-empty">${T('browser.reading')}</p>`;
         let listed;
         try {
             listed = await foreground(() => api().browse_folder(path || '', $('browserShowAll').checked));
         } catch (e) {
-            listed = { error: 'That folder could not be read.' };
+            listed = { error: T('browser.folderUnreadable') };
         }
         if (mine !== token) return;
         if (listed.error) {
@@ -280,9 +282,9 @@
         drawPlaces();
         showPreview(null);
         if (!listed.files.length && !listed.folders.length && listed.other_files && !$('browserShowAll').checked) {
-            $('browserList').innerHTML = `<p class="browse-empty">No models here.<br>
-                <span class="muted">${count(listed.other_files)} other file${listed.other_files === 1 ? '' : 's'} —
-                tick “Show every file” to see them.</span></p>`;
+            $('browserList').innerHTML = '<p class="browse-empty">' + T('browser.emptyElse', {
+                files: Tp('pl.ofiles', listed.other_files, { n: count(listed.other_files) }),
+            }) + '</p>';
         }
         fillThumbs(++thumbRun);
     }
@@ -304,7 +306,7 @@
         thumbRun++;
         atRecent = true;
         looked = new Map();
-        $('browserList').innerHTML = '<p class="browse-empty">Looking…</p>';
+        $('browserList').innerHTML = `<p class="browse-empty">${T('browser.lookingRecent')}</p>`;
         let res;
         try {
             res = await foreground(() => api().browse_recent());
@@ -318,12 +320,12 @@
         parent = null;
         $('btnBrowserOpen').disabled = true;
         $('btnBrowseUp').disabled = true;
-        $('browserCrumbs').innerHTML = '<span class="crumb-current">Recently opened</span>';
+        $('browserCrumbs').innerHTML = `<span class="crumb-current">${T('browser.recentTitle')}</span>`;
         draw();
         drawPlaces();
         showPreview(null);
         if (!entries.length) {
-            $('browserList').innerHTML = '<p class="browse-empty">Nothing opened yet.<br><span class="muted">Files you open appear here.</span></p>';
+            $('browserList').innerHTML = `<p class="browse-empty">${T('browser.recentEmpty')}</p>`;
         }
         fillThumbs(++thumbRun);
     }
@@ -395,4 +397,11 @@
     });
 
     window.meshwrightBrowser = { open, close, isOpen };
+
+    if (window.I18N) window.I18N.onChange(() => {
+        if (!isOpen()) return;
+        drawPlaces();
+        draw();
+        if (lastPreview !== undefined) showPreview(lastPreview);
+    });
 })();

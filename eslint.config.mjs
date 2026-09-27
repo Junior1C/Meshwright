@@ -9,7 +9,10 @@ export default [
       globals: {
         ...globals.browser,
         THREE: "readonly",
-        pywebview: "readonly"
+        pywebview: "readonly",
+        T: "readonly",
+        Tp: "readonly",
+        I18N: "readonly"
       }
     },
     rules: {

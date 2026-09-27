@@ -24,10 +24,11 @@
 
     let parts = [];
     let settle = null;               // resolves the promise the caller is waiting on
+    let lastHead = null;             // {name, rig} for re-rendering on language switch
 
     const text = s => String(s == null ? '' : s).replace(/[&<>"']/g,
         c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    const count = n => Number(n || 0).toLocaleString();
+    const count = n => I18N.num(n);
     const measure = s => (s && s.some(v => v > 0.0005))
         ? s.map(v => (+v).toFixed(v >= 100 ? 0 : 2)).join(' × ') : '';
 
@@ -54,17 +55,17 @@
                     <label class="check">
                         <input type="checkbox" data-group="${gi}" ${kept === group.items.length ? 'checked' : ''}
                                ${kept && kept < group.items.length ? 'data-some="1"' : ''}>
-                        <span>${text(group.name || 'Objects')}</span>
+                        <span>${text(group.name || T('parts.objects'))}</span>
                     </label>
-                    <span class="parts-group-meta">${group.items.length} object${group.items.length === 1 ? '' : 's'} · ${count(faces)} faces</span>
+                    <span class="parts-group-meta">${Tp('pl.objects', group.items.length, { n: count(group.items.length) })} · ${Tp('pl.faces', faces, { n: count(faces) })}</span>
                 </div>`;
             const rows = group.items.map(part => `
                 <label class="parts-row${part.keep ? '' : ' off'}">
                     <input type="checkbox" data-id="${text(part.id)}" ${part.keep ? 'checked' : ''}>
                     <span class="parts-name" title="${text(part.name)}">${text(part.name)}</span>
-                    <span class="parts-meta">${part.faces ? count(part.faces) + ' faces' : 'no geometry'}${
+                    <span class="parts-meta">${part.faces ? Tp('pl.faces', part.faces, { n: count(part.faces) }) : T('parts.noGeo')}${
                         measure(part.size) ? ' · ' + measure(part.size) : ''}${
-                        part.hidden ? ' · hidden in the file' : ''}</span>
+                        part.hidden ? T('parts.hidden') : ''}</span>
                 </label>`).join('');
             return head + `<div class="parts-rows">${rows}</div>`;
         }).join('');
@@ -113,11 +114,24 @@
         tally();
     }
 
+    function paintHead() {
+        if (!lastHead) return;
+        $('partsTitle').textContent = T('parts.holds', {
+            name: lastHead.name, n: Tp('pl.objects', parts.length, { n: count(parts.length) }),
+        });
+        $('partsHint').textContent = lastHead.rig
+            ? T('parts.rigged', { name: lastHead.rig.name, b: count(lastHead.rig.bones) })
+            : T('parts.plain');
+    }
+
     function tally() {
         const kept = parts.filter(p => p.keep);
         const faces = kept.reduce((n, p) => n + (p.faces || 0), 0);
-        $('partsCount').textContent =
-            `${count(kept.length)} of ${count(parts.length)} objects · ${count(faces)} faces`;
+        $('partsCount').textContent = T('parts.tally', {
+            k: count(kept.length),
+            t: Tp('pl.objects', parts.length, { n: count(parts.length) }),
+            f: Tp('pl.faces', faces, { n: count(faces) }),
+        });
         $('btnPartsOpen').disabled = kept.length === 0;
     }
 
@@ -148,12 +162,9 @@
         if (parts.length < 2) return null;
 
         const name = path.split(/[\\/]/).pop();
-        $('partsTitle').textContent = `${name} holds ${count(parts.length)} objects`;
         const rig = (found.armatures || [])[0];
-        $('partsHint').textContent = rig
-            ? `Choose what to open. This project is rigged (${rig.name}, ${count(rig.bones)} bones); `
-              + 'the pose it is saved in is what comes across.'
-            : 'Choose what to open. Everything you leave out stays in the file, untouched.';
+        lastHead = { name: name, rig: rig ? { name: rig.name, bones: rig.bones } : null };
+        paintHead();
         draw();
         $('parts').classList.remove('hidden');
         return new Promise(resolve => { settle = resolve; });
@@ -176,4 +187,10 @@
     });
 
     window.meshwrightParts = { choose };
+
+    if (window.I18N) window.I18N.onChange(() => {
+        if ($('parts').classList.contains('hidden') || !parts.length) return;
+        paintHead();
+        draw();
+    });
 })();

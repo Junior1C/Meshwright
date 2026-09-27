@@ -64,7 +64,7 @@
             if (!band || !drag) return;
             const caught = window.viewer.piecesInBox(box.left, box.top, box.right, box.bottom);
             label.textContent = caught.size
-                ? `${caught.size} piece${caught.size === 1 ? '' : 's'}${drag.add ? ' to add' : ''}`
+                ? Tp('mq.selected', caught.size, { n: caught.size }) + (drag.add ? T('mq.toAdd') : '')
                 : '';
         });
     }
@@ -96,8 +96,8 @@
                 pieces().choose([...keep]);
                 const status = app().setStatus || (() => {});
                 status(caught.size
-                    ? `${caught.size} piece${caught.size === 1 ? '' : 's'} selected`
-                    : 'Nothing inside the box', caught.size ? 'ok' : 'busy', 2500);
+                    ? Tp('mq.selected', caught.size, { n: caught.size })
+                    : T('mq.nothing'), caught.size ? 'ok' : 'busy', 2500);
             }
         }
         drag = null;

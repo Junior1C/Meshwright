@@ -1,271 +1,211 @@
-# Wax & Metal — making an AI-generated ring castable
+# Воск и металл — делаем сгенерированное кольцо литейным (RU)
 
-**Status:** proposal, nothing built
-**Version:** draft 1, 25 September 2026
-**Author:** Geekatplay Studio · Vladimir Chopine
+**Статус:** предложение, ничего не построено
+**Версия:** черновик 1, 25 сентября 2026
+**Автор:** Geekatplay Studio · Владимир Чопин
 
 ---
 
-## 1. The problem
+## 1. Проблема
 
-Image-to-3D services — Tripo, Meshy, Hitem3D and the rest — will produce a ring from a
-sketch in under a minute, and the result looks right in a render. It is almost never
-wearable or castable:
+Сервисы картинки-в-3D — Tripo, Meshy, Hitem3D и остальные — выдадут кольцо по скетчу меньше чем за минуту, и на рендере оно выглядит верно. Носить и лить его почти никогда нельзя:
 
-| What arrives | Why it matters |
+| Что приходит | Почему это важно |
 |---|---|
-| The bore is an oval, not a circle | It will not go on a finger, and there is no "size" to quote |
-| The bore is whatever size the generator felt like | Nobody's finger is 17.89 mm |
-| Square-cut edges inside the bore | A sharp inner rim cuts into the finger; every real band is relieved |
-| Band thinner than 1 mm in places | It will not fill in casting, and it bends in wear |
-| Detail finer than the metal can hold | Prints beautifully in resin, disappears in silver |
-| No shrinkage allowance | The cast ring comes out a size and a half small |
+| Посадка — овал, а не круг | На палец не налезет, и «размера», который назвать, нет |
+| Посадка — какого размера генератор захотел | Ничей палец не 17,89 мм |
+| Квадратные края внутри посадки | Острая внутренняя кромка режет палец; у каждой настоящей шинки кромка снята |
+| Шинка тоньше 1 мм местами | В литье не зальётся, в носке гнётся |
+| Мелочь тоньше, чем держит металл | В смоле печатается красиво, в серебре исчезает |
+| Нет припуска на усадку | Литое кольцо выходит на полтора размера меньше |
 
-Generic STL repair — including the auto-repair built into Meshy and Tripo themselves —
-closes holes and fixes normals. **None of it knows what a ring is.** It will happily
-hand back a watertight, manifold, perfectly non-wearable oval.
+Обычный ремонт STL — включая авточнилку самих Meshy и Tripo — закрывает дыры и чинит нормали. **Ни один не знает, что такое кольцо.** Он с радостью отдаст герметичный, многообразный, идеально неносибельный овал.
 
-That gap is what this is for.
+Эта щель — то, ради чего всё здесь.
 
-## 2. Who it is for, and how small that is
+## 2. Кому и насколько это мелко
 
-Jewellers and hobbyists who generate designs with AI and cast them through lost-wax,
-printing a castable-wax master on a resin printer. This is a **small market on purpose**
-— it is a wedge, not the main business.
+Ювелирам и любителям, которые генерят дизайны ИИ и льют по выплавляемым моделям, печатая восковый мастер на смоляном принтере. Рынок **намеренно мелкий** — это клин, а не главный бизнес.
 
-So the design constraint that follows from it: **the jewellery panel is collapsed by
-default and does not intrude on anyone else's workflow.** A person printing miniatures
-should never have to look at ring sizes. Someone who opens it once and picks their
-printer should find it open next time and never have to think about it again.
+Отсюда проектное ограничение: **панель ювелирки по умолчанию свёрнута и никому не мешается.** Человек, печатающий миниатюры, размеров колец видеть не должен вообще. Открывший раз и выбравший принтер в следующий раз найдёт открытым и больше думать не будет.
 
-## 3. What it does
+## 3. Что делает
 
-One panel, **Jewellery (wax casting)**, collapsed until opened. Inside it, for a ring:
+Одна панель, **«Ювелирка (литьё)»**, свёрнута, пока не открыли. Внутри, для кольца:
 
-### 3.1 Measure — always, and honestly
+### 3.1 Измерить — всегда и честно
 
-| Measurement | How | Proven |
+| Замер | Как | Доказано |
 |---|---|---|
-| Which way the finger goes | Largest principal moment of inertia — a ring's mass all sits at one radius from that axis | 0.01 s, correct on a model tilted 23° |
-| Bore diameter, all the way round | Rays fired outward from the axis, first hit | Exact: read 16.40 / 17.90 mm off a bore built as 16.4 × 17.9 |
-| Out-of-round | max − min of those radii | Caught 1.50 mm (8.8%) on the test ring |
-| Ring size | ISO 8653: size = inner circumference in mm, taken at the **narrowest** point | Reported ISO 54, US 6.8 |
-| Band thickness | Rays fired inward at every face (the printability check already does this) | Already in the product |
-| Sharp edges | Share of adjacent faces meeting above 55° | 13% on a square-cut section |
+| Куда идёт палец | Самый большой главный момент инерции — вся масса кольца на одном радиусе от этой оси | 0,01 с, верно на модели, наклонённой на 23° |
+| Диаметр посадки, по всему кругу | Лучи наружу от оси, первое попадание | Точно: 16,40 / 17,90 мм считаны с посадки, построенной 16,4 × 17,9 |
+| Некруглость | макс − мин этих радиусов | Поймано 1,50 мм (8,8%) на тестовом кольце |
+| Размер кольца | ISO 8653: размер = внутренняя окружность в мм, берётся в **самом узком** месте | Доложено ISO 54, US 6,8 |
+| Толщина шинки | Лучи внутрь у каждой грани (проверка печати так уже умеет) | Уже в продукте |
+| Острые края | Доля соседних граней, сходящихся круче 55° | 13% на квадратном сечении |
 
-### 3.2 Correct — each one optional, each one reversible
+### 3.2 Исправить — каждое опционально, каждое отменяется
 
-**Fit the bore** — the core operation. Rather than trying to repair the generator's oval,
-subtract a mathematically perfect one. A D-profile solid of revolution, sized from the
-ISO table, is booleaned out of the model. That fixes the circle, the size and the inner
-edge relief **in one operation**, because a comfort-fit profile *is* a rounded inner edge.
+**Подогнать посадку** — главная операция. Вместо чинки генераторова овала — вычесть математически идеальный. D-профильное тело вращения, взятое из ISO-таблицы, булево вычитается из модели. Круг, размер и снятие внутренней кромки чинятся **одной операцией**: комфортный профиль *и есть* скруглённая внутренняя кромка.
 
-Measured on the test ring: bore came out at exactly **54.0 mm circumference as asked**,
-0.03 s, watertight.
+Замерено на тестовом кольце: посадка вышла ровно **54,0 мм окружности, как просили**, 0,03 с, герметично.
 
-> The dome goes narrowest-in-the-middle, flaring at the rims. I built it the other way
-> round first: the ring then grips at the edges — the exact thing comfort fit exists to
-> avoid — and the size reads wrong, because a ring's size is set by its narrowest point.
+> Купол идёт уже-в-середине, шире к краям. Сначала я построил наоборот: кольцо тогда держится краями — ровно то, ради чего комфортная посадка существует, чтобы не держалось, — и размер читается неверно: размер кольца задаётся его самым узким местом.
 
-**Thicken where it is too thin** — flag anything under the casting minimum, and offer to
-grow the outer surface (never the bore) to reach it.
+**Утолстить где тонко** — пометить всё ниже литейного минимума и предложить нарастить наружную поверхность (посадку — никогда) до него.
 
-**Round the outer edges** — optional, and with a warning attached. See §6.
+**Скруглить наружные края** — опционально и с предупреждением. См. §6.
 
-**Scale for shrinkage** — one multiplier applied last, so the cast metal comes out the
-size that was asked for. See §5.
+**Масштаб на усадку** — один множитель последним: литой металл выходит заказанного размера. См. §5.
 
-### 3.3 Report
+### 3.3 Отчёт
 
-A verdict in the same shape as the printability check: what is wrong, how much, where on
-the model, and what it would take to fix. Nothing is changed without being asked.
+Вердикт той же формы, что проверка печати: что не так, насколько, где на модели и что нужно для починки. Без спроса ничего не меняется.
 
-## 4. The numbers, and where they come from
+## 4. Числа и откуда они
 
-These go in a table in the code with their sources beside them, not scattered as magic
-constants.
+Лежат таблицей в коде с источниками рядом, а не разбросаны магическими константами.
 
-| Rule | Value | Source |
+| Правило | Значение | Источник |
 |---|---|---|
-| Ring size definition | Inner circumference in mm | [ISO 8653:2016](https://www.iso.org/standard/16029.html) |
-| US size step | 0.81 mm diameter / 2.55 mm circumference per whole size | [Ring size](https://en.wikipedia.org/wiki/Ring_size) |
-| Ring band minimum wall | **1.0 mm** (both gold and silver) | [i.materialise gold](https://i.materialise.com/en/3d-printing-materials/gold/design-guide), [Materialise silver](https://www.materialise.com/en/academy/industrial/design-am/silver) |
-| General wall minimum | 0.8 mm gold, 0.6–0.8 mm silver | same |
-| Absolute floor, lost-wax | 0.35 mm | [Materialise lost-wax guidelines](https://www.materialise.com/en/academy/industrial/design-am/gold) |
-| Prong diameter | ≥ 0.8 mm | [PriceScope](https://www.pricescope.com/community/threads/what-is-the-minimum-size-prongs-that-can-be-wax-cast.211740/) |
-| Engraving depth | ≥ 0.3 mm on surfaces that rub; depth:width ≤ 1:1 | Materialise guidelines |
-| Sunken detail, to be visible | 0.4 × 0.4 × 0.4 mm | Materialise guidelines |
-| Comfort-fit profile | D-shape, roughly 2 mm wide × 1.8 mm tall | [Ring design guidance](https://misterjewel.com/3d-jewelry-design-technical-tips-for-superior-quality-in-manufacturing-and-casting/) |
-| Comfort fit sizing | Fits about half a size looser than flat fit | [Larson Jewelers](https://www.larsonjewelers.com/pages/comfortfit) |
-| Print + cure shrinkage | 0.8% rising to ~1.25% at plateau, measured on an 18 mm bore | [Liqcreate](https://www.liqcreate.com/supportarticles/linear-shrinkage-of-3d-printing-resins/) |
-| Casting shrinkage | ~2.6% average, material dependent | [3dprinting.com](https://3dprinting.com/resin/best-castable-resin/) |
-| Supports | Outer bottom of the shank; **never inside the bore** | [ifun3d](https://ifun3d.com/blog/3d-printing/resin/3d-printed-rings-vs-pendants-jewelry-resin-guide) |
+| Определение размера кольца | Внутренняя окружность в мм | [ISO 8653:2016](https://www.iso.org/standard/16029.html) |
+| Шаг размера US | 0,81 мм диаметра / 2,55 мм окружности на целый размер | [Ring size](https://en.wikipedia.org/wiki/Ring_size) |
+| Минимум стенки шинки | **1,0 мм** (и золото, и серебро) | [i.materialise gold](https://i.materialise.com/en/3d-printing-materials/gold/design-guide), [Materialise silver](https://www.materialise.com/en/academy/industrial/design-am/silver) |
+| Общий минимум стенки | 0,8 мм золото, 0,6–0,8 мм серебро | там же |
+| Абсолютный пол, литьё по выплавляемым | 0,35 мм | [Materialise lost-wax guidelines](https://www.materialise.com/en/academy/industrial/design-am/gold) |
+| Диаметр крапана | ≥ 0,8 мм | [PriceScope](https://www.pricescope.com/community/threads/what-is-the-minimum-size-prongs-that-can-be-wax-cast.211740/) |
+| Глубина гравировки | ≥ 0,3 мм на трущихся местах; глубина:ширина ≤ 1:1 | Гайды Materialise |
+| Углублённая мелочь, чтобы видно | 0,4 × 0,4 × 0,4 мм | Гайды Materialise |
+| Комфорт-профиль | D-форма, примерно 2 мм шириной × 1,8 мм высотой | [Ring design guidance](https://misterjewel.com/3d-jewelry-design-technical-tips-for-superior-quality-in-manufacturing-and-casting/) |
+| Посадка комфорта | Сидит примерно на полразмера свободнее плоской | [Larson Jewelers](https://www.larsonjewelers.com/pages/comfortfit) |
+| Усадка печати + досветки | 0,8% до ~1,25% на плато, замерено на посадке 18 мм | [Liqcreate](https://www.liqcreate.com/supportarticles/linear-shrinkage-of-3d-printing-resins/) |
+| Усадка литья | ~2,6% в среднем, зависит от материала | [3dprinting.com](https://3dprinting.com/resin/best-castable-resin/) |
+| Поддержки | Низ шинки снаружи; **никогда внутри посадки** | [ifun3d](https://ifun3d.com/blog/3d-printing/resin/3d-printed-rings-vs-pendants-jewelry-resin-guide) |
 
-### The important distinction
+### Важное различие
 
-There are **two different minimum feature sizes**, and the product already gets one of
-them right:
+Минимальных размеров мелочи **два разных**, и один продукт уже меряет верно:
 
-1. **What the printer can resolve** — 18 µm on an Elegoo Mars 4 Ultra. Already measured
-   by the existing print check, against 216 machines.
-2. **What survives casting in metal** — 0.35 mm absolute, 1.0 mm for a band. That is
-   **twenty times coarser**, and it is the limit that actually binds.
+1. **Что различает принтер** — 18 мкм на Elegoo Mars 4 Ultra. Уже меряет существующая проверка печати, против 216 машин.
+2. **Что переживает литьё в металле** — абсолют 0,35 мм, для шинки 1,0 мм. Это **в двадцать раз грубее**, и связывает именно этот предел.
 
-A ring can pass the print check perfectly and still come out of the kiln as a puddle.
-The jewellery check is the stricter one, and must be shown as a separate verdict rather
-than folded into the existing score.
+Кольцо может идеально пройти проверку печати и всё равно выйти из печи лужицей. Ювелирная проверка строже — отдельным вердиктом, а не сложенной в существующую оценку.
 
-## 5. Shrinkage: the one that loses rings
+## 5. Усадка: та, на которой теряют кольца
 
-Print-and-cure shrink stacks on top of metal shrink. Published figures put the total
-around 2–4%, but it depends on the resin, the investment, the metal and the kiln — so a
-single hard-coded number would be worse than useless.
+Усадка печати-и-досветки складывается с усадкой металла. Публикуемые цифры дают итого около 2–4%, но всё зависит от смолы, формы, металла и печи — одно зашитое число было бы хуже бесполезного.
 
-**Design:** a per-material compensation field, defaulting to a published figure, with the
-arithmetic shown plainly — *"printing at 103.0%: an ISO 54 ring casts as ISO 54"* — and a
-note that it should be dialled in with a test cast. It is applied **last**, after every
-other correction, and recorded in the export report so a known-good factor can be
-reused.
+**Проект:** поле компенсации на материал, по умолчанию публикуемая цифра, арифметика показана открытым текстом — *«печатаем в 103,0%: кольцо ISO 54 отливается как ISO 54»* — и пометка, что доводится пробной отливкой. Применяется **последним**, после всех прочих правок, и пишется в отчёт экспорта: известный хороший коэффициент переиспользуется.
 
-This is the single most valuable number in the feature and the one we cannot know for the
-user. It must be theirs to set, and obvious that it is.
+Это самое ценное число фичи — и то, которого мы за пользователя знать не можем. Оно обязано быть его, и очевидно его.
 
-## 6. Rounding the outer edges — solved, by Blender
+## 6. Скругление наружных краёв — решено, через Blender
 
-**The voxel approach does not work, and this was measured.** Rounding by closing then
-opening a voxel solid does round edges — sharp faces 13% → 0%, watertight, 12 s at 0.1 mm
-voxels — but 0.1 mm voxels cannot hold the 0.3 mm engraving the same guidelines demand,
-and going fine enough is not affordable: a 20 mm ring at the printer's own 18 µm would be
-**1.4 billion voxels**.
+**Воксельный путь не работает, и это намеряно.** Скругление последовательным закрытием и открытием воксельного тела края скругляет — острые грани 13% → 0%, герметично, 12 с на вокселях 0,1 мм, — но воксели 0,1 мм не держат гравировку 0,3 мм, которую требуют те же гайды, а мельче — не по карману: кольцо 20 мм в родных 18 мкм принтера — это **1,4 миллиарда вокселей**.
 
-**Blender's angle-limited Bevel modifier does work**, and by a wide margin:
+**Фаска Blender с лимитом по углу работает**, и с запасом:
 
-| | Voxel rounding | Blender bevel |
+| | Воксельное скругление | Фаска Blender |
 |---|---|---|
-| Sharp faces | 13% → 0% | 35% → **0%** |
-| 0.3 mm engraving | blurred away | **100% survived, 0.300 mm** |
-| Faces produced | 259,112 | **13,104** |
-| Round trip | 12 s | **1.5 s** |
-| At 125,952 faces in | — | **1.8 s**, 194,880 out, watertight |
+| Острые грани | 13% → 0% | 35% → **0%** |
+| Гравировка 0,3 мм | замылена | **уцелела 100%, 0,300 мм** |
+| Граней сделано | 259 112 | **13 104** |
+| Туда-обратно | 12 с | **1,5 с** |
+| На 125 952 гранях вход | — | **1,8 с**, наружу 194 880, герметично |
 
-Because the bevel is limited by edge angle, it rounds the hard corners and leaves flat
-faces and shallow detail untouched — which is precisely what the voxel filter could not
-do, and precisely what a jeweller means by "take the sharpness off".
+Фаска, ограниченная углом ребра, скругляет жёсткие углы, а плоские грани и мелочь неглубокую не трогает — ровно то, чего воксельный фильтр не мог, и ровно то, что ювелир имеет в виду под «снять остроту».
 
-This moves outer-edge rounding **out of Phase 3 research and into Phase 2**.
+Это двигает скругление наружных краёв **из Фазы 3 исследований в Фазу 2**.
 
-### Meshwright already talks to Blender
+### Meshwright уже говорит с Blender
 
-`engine/blend_import.py` runs an installed Blender headless to open `.blend` projects,
-and `find_blender()` locates it. The same bridge runs a modifier stack on any mesh. What
-this opens up beyond bevelling:
+`engine/blend_import.py` гоняет установленный Blender безголовым открывать `.blend`-проекты, а `find_blender()` его находит. Тот же мост крутит стек модификаторов на любой сетке. Что это открывает сверх фасок:
 
-- **Solidify** — thicken a band that is under the casting minimum, outward only
-- **Remesh** and the exact **Boolean** solver, as alternatives where trimesh struggles
+- **Solidify** — утолщить шинку тоньше литейного минимума, только наружу
+- **Remesh** и точный **Boolean**-решатель — альтернативы там, где trimesh буксует
 
-### What depending on it costs
+### Во что обходится зависимость
 
-- **Blender must be installed.** It already must be, for `.blend` import — but that is an
-  optional format and this would be a core operation. The fallback has to be graceful, in
-  the pattern already used for a missing PyMeshLab: say what is needed, say which copy of
-  Meshwright lacks it, and point at what still works.
-- **Its Python API moves between versions.** The STL operator used here,
-  `bpy.ops.wm.stl_import`, is Blender 4.2 and newer; before that it was
-  `bpy.ops.import_mesh.stl`. A version probe and a fallback are required, and this is the
-  main ongoing maintenance cost.
-- **About 1.5 s per launch**, nearly all of it startup — the bevel itself took 0.02 s.
-  Fine for a committed operation with a progress toast; too slow to drag a slider against.
-  Preview approximately in the viewport, commit for real.
-- **Licence.** Blender is GPL-3. Driving an installed copy as a separate process is
-  arm's-length and fine; bundling it into the installer would not be.
+- **Blender обязан стоять.** Для импорта `.blend` он уже обязан — но то опциональный формат, а это была бы стержневая операция. Откат — вежливый, по образцу отсутствующего PyMeshLab: сказать, что нужно, сказать, какой копии Meshwright не хватает, и указать, что работает и так.
+- **Его Python API гуляет между версиями.** Используемый здесь STL-оператор, `bpy.ops.wm.stl_import`, — Blender 4.2 и новее; раньше был `bpy.ops.import_mesh.stl`. Нужны проба версии и запасной путь — главная постоянная цена поддержки.
+- **Около 1,5 с на запуск**, почти всё — старт: сама фаска заняла 0,02 с. Для зафиксированной операции с тостом прогресса нормально; таскать слайдер — медленно. Прикидывать примерно во вьюпорте, фиксировать по-настоящему.
+- **Лицензия.** Blender GPL-3. Гонять установленную копию отдельным процессом — на расстоянии вытянутой руки, нормально; паковать в установщик — нельзя.
 
-## 6a. What we should still not pretend to do
+## 6a. Что мы всё равно не будем делать вид, что делаем
 
-**Stone settings, prongs and bezels** are out of scope. Checking a prong is one thing;
-building or repairing one is jewellery CAD, and MatrixGold already exists.
+**Крепления камней, крапаны и касты** — вне рамок. Проверить крапан — одно; построить или починить — ювелирный CAD, а MatrixGold уже существует.
 
-**We do not become a design tool.** The generator designs. This makes what it produced
-manufacturable.
+**Инструментом дизайна не становимся.** Дизайнит генератор. Это делает произведённое производимым.
 
-## 7. Has anyone done it
+## 7. Кто-нибудь это делал
 
-| Who | What they do | Gap |
+| Кто | Что делают | Щель |
 |---|---|---|
-| Meshy / Tripo auto-repair | Holes, non-manifold, normals | No idea what a ring is |
-| meshcast.app and similar | Generic printability | Same |
-| [JewelCraft](https://blender-addons.org/jewelcraft/) (Blender, free, open source) | Ring sizing, gems, prongs, weight in alloys | A **design** add-on inside Blender; does not take a broken mesh and correct it |
-| MatrixGold, RhinoGold, 3Design, JewelCAD | Full professional jewellery CAD | Design from scratch, thousands of pounds, steep |
+| Авточнилка Meshy / Tripo | Дыры, немногообразие, нормали | Понятия не имеют, что такое кольцо |
+| meshcast.app и подобные | Общая пригодность к печати | То же |
+| [JewelCraft](https://blender-addons.org/jewelcraft/) (Blender, бесплатно, открыто) | Размеры колец, камни, крапаны, вес в сплавах | **Дизайн**-аддон внутри Blender; битую сетку не берёт и не правит |
+| MatrixGold, RhinoGold, 3Design, JewelCAD | Полный профессиональный ювелирный CAD | Дизайн с нуля, тысячи фунтов, круто |
 
-Nobody is taking AI output and making it castable against jewellery rules. The wedge is
-real and narrow.
+Никто не берёт вывод ИИ и не делает литейным по ювелирным правилам. Клин реален и узок.
 
-## 8. Libraries — what exists, what is usable
+## 8. Библиотеки — что есть, что годно
 
-| Library | Offers | Verdict |
+| Библиотека | Даёт | Вердикт |
 |---|---|---|
-| **OpenVDB 13** | A real level-set `Fillet` that rounds only concave regions, plus `Offset` | **No pip wheel.** Would have to be vendored or built. Best-in-class, not practical now |
-| **MeshLib 3.1.4** | Mesh-to-SDF, offsetting, "double-offset blending for seamless fillets" | **Free for non-commercial use only** — unusable in a distributed product |
-| **CadQuery 2.8 / build123d 0.13** | Real B-rep fillets and chamfers via OCCT | Cannot fillet an arbitrary AI mesh. **Useful for generating the parametric bore and cutters** |
-| **An installed Blender** | Angle-limited Bevel, Solidify, Remesh, exact Booleans | **The answer for edge rounding — measured, §6.** Already reachable through `engine/blend_import.py` |
-| **libigl 2.6.3 / pygalmesh / VTK** | Geometry processing | Available; nothing needed from them yet |
-| **Already in the product** | trimesh, manifold3d (booleans), scipy (distance transforms), scikit-image (marching cubes), embreex (rays), PyMeshLab | **Everything Phase 1 and 2 need is already installed** |
+| **OpenVDB 13** | Настоящий level-set `Fillet`, скругляющий только вогнутости, плюс `Offset` | **Нет pip-колеса.** Вендорить или собирать. Лучший в классе, сейчас непрактичен |
+| **MeshLib 3.1.4** | Mesh-to-SDF, офсеттинг, «double-offset blending for seamless fillets» | **Бесплатен только для некоммерческого** — в распространяемом продукте негоден |
+| **CadQuery 2.8 / build123d 0.13** | Настоящие B-rep фаски и скругления через OCCT | Произвольный ИИ-меш не фасонируют. **Годны генерить параметрическую посадку и резцы** |
+| **Установленный Blender** | Фаска с лимитом по углу, Solidify, Remesh, точные булевы | **Ответ для скругления краёв — намеряно, §6.** Уже достижим через `engine/blend_import.py` |
+| **libigl 2.6.3 / pygalmesh / VTK** | Обработка геометрии | Доступны; пока ничего не надо |
+| **Уже в продукте** | trimesh, manifold3d (булевы), scipy (дистанционные трансформы), scikit-image (марширующие кубы), embreex (лучи), PyMeshLab | **Всё для Фаз 1 и 2 уже стоит** |
 
-No new dependency is required to build the valuable part.
+Новой зависимости ценная часть не требует.
 
-## 9. What it takes
+## 9. Сколько стоит
 
-Sizes are relative to what exists; the pattern the codebase already follows is
-engine module → tests → service → API → panel → drive the real window.
+Размеры — относительно существующего; порядок кодобазы уже устоялся: модуль движка → тесты → сервис → API → панель → прогнать настоящее окно.
 
-### Phase 1 — Measure and report *(the whole value, none of the risk)*
-- `engine/jewellery.py`: axis, bore profile, ovality, size, thickness against casting rules
-- Casting-rule table with sources
-- Verdict in the existing issue shape, so faults highlight on the model like every other
-- Panel, collapsed by default, with ring size in ISO / US / UK
-- **Proven feasible end to end. All components measured.**
+### Фаза 1 — Измерить и доложить *(вся ценность, ноль риска)*
+- `engine/jewellery.py`: ось, профиль посадки, овальность, размер, толщина против литейных правил
+- Таблица литейных правил с источниками
+- Вердикт в существующей форме проблем, чтобы неисправности подсвечивались на модели, как все остальные
+- Панель, по умолчанию свёрнута, с размером кольца в ISO / US / UK
+- **Осуществимость доказана от края до края. Все компоненты намеряны.**
 
-### Phase 2 — Correct
-- Parametric comfort-fit bore by boolean subtraction *(proven: exact size, 0.03 s)*
-- Thicken-to-minimum where the band is too thin
-- Shrinkage compensation, applied last, shown as arithmetic
-- Edge rounding through Blender's bevel, with a graceful refusal when Blender is absent
-  *(proven: detail preserved, 1.8 s on a 126k-face ring)*
-- Each an undoable state, as every operation already is
+### Фаза 2 — Исправить
+- Параметрическая комфортная посадка вычитанием булевой *(доказано: точный размер, 0,03 с)*
+- Утолщение до минимума, где шинка тонка
+- Компенсация усадки — последней, показанная арифметикой
+- Скругление краёв фаской Blender, с вежливым отказом без Blender *(доказано: мелочь уцелела, 1,8 с на кольце 126k граней)*
+- Каждое — отменяемым состоянием, как любая операция уже
 
-### Phase 3 — Only if wanted
-- Other items: pendants, bands, bangles. The measurement frame generalises; the bore does not
-- A weight estimate in silver / gold / platinum, which JewelCraft shows people want
+### Фаза 3 — Если захочется
+- Остальное: подвески, шинки, браслеты. Рамка замеров обобщается; посадка — нет
+- Оценка веса в серебре / золоте / платине — JewelCraft показывает, людям надо
 
-### What is already there and does not need building
-- Resin printer profiles, including the user's Elegoo, with real pixel pitch
-- Thickness measurement by ray casting, with the two-measurement honesty rule
-- Boolean unions via manifold3d, voxel remesh, decimation, undo/redo, crash recovery
-- Per-piece selection and operations, and the right-click menu to hang actions on
+### Что уже есть и строить не надо
+- Профили смоляных принтеров, включая пользовательский Elegoo, с настоящим шагом пикселя
+- Замер толщины лучами, с правилом честности двух замеров
+- Булевы объединения через manifold3d, воксельный ремеш, децимация, undo/redo, восстановление после падений
+- Выбор и операции по кускам и меню правой кнопки, на что их вешать
 
-## 10. Open questions
+## 10. Открытые вопросы
 
-1. **Which metals to ship rules for?** Silver and gold cover most of it; platinum and
-   brass differ. One table, extendable.
-2. **Where does the panel live?** A collapsed card beside *Print check* is the obvious
-   place — both answer "will this survive manufacture?"
-3. **How is the ring size chosen** — a size picker (ISO/US/UK), a target diameter, or
-   "keep what it is, just make it round"? All three are reasonable; the third may be the
-   most common.
-4. **Should the check refuse non-rings?** A pendant run through ring measurement gives
-   nonsense. Detecting "is this ring-shaped" needs a confidence test and a graceful
-   refusal.
-5. **Is a test-cast calibration record worth keeping** — remembering that this resin plus
-   this investment needed 103.2%?
+1. **Правила каких металлов шипать?** Серебро и золото крыют почти всё; платина и латунь отличаются. Одна таблица, расширяемая.
+2. **Где жить панели?** Свёрнутая карточка рядом с *проверкой печати* — очевидное место: обе отвечают «переживёт ли производство?»
+3. **Как выбирается размер кольца** — picker размеров (ISO/US/UK), целевой диаметр или «оставь как есть, просто скругли»? Все три разумны; третий, может, самый частый.
+4. **Должна ли проверка отказывать не-кольцам?** Подвеска, прогнанная через замер колец, даёт бред. Детект «кольцеобразности» требует теста уверенности и вежливого отказа.
+5. **Стоит ли журнал калибровки пробной отливки** — помнить, что этой смоле плюс этой формовке надо было 103,2%?
 
-## 11. How we would know it works
+## 11. Как поймём, что работает
 
-Not by "it looks right". The same standard the rest of the product is held to:
+Не по «вроде верно». Тот же стандарт, что держит остальной продукт:
 
-- A ring built with a **known** bore measures back to that bore, within a hundredth of a
-  millimetre *(already demonstrated: 16.40 / 17.90 read off exactly)*
-- A corrected bore measures the **exact circumference asked for** *(demonstrated: 54.0)*
-- A corrected ring is watertight, is one solid, and lost no volume it should have kept
-- Thinning the band by enlarging the bore is **caught and reported**, not silently allowed
-  *(it happened in testing — the wall fell to 0.95 mm, under the 1.0 mm minimum)*
-- Every published figure in the rules table traces to a source in this document
-- Driven in the real window, on a real generated ring, before it ships
+- Кольцо с **известной** посадкой намеряется обратно в ту посадку, до сотой миллиметра *(уже показано: 16,40 / 17,90 считаны ровно)*
+- Исправленная посадка меряет **ровно заказанную окружность** *(показано: 54,0)*
+- Исправленное кольцо герметично, одним телом и не потеряло объёма, который должно было держать
+- Утоньшение шинки расширением посадки **ловится и докладывается**, а не позволяется молча *(в тестах случалось: стенка упала до 0,95 мм при минимуме 1,0 мм)*
+- Каждая публикуемая цифра таблицы правил ведёт к источнику в этом документе
+- Прогнано в настоящем окне, на настоящем сгенерированном кольце, до отгрузки
+
+Оригинал на английском: [PRD-RINGS.en.md](PRD-RINGS.en.md).

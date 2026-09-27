@@ -1,88 +1,62 @@
-# Reducing polygons
+# Упрощение полигонов (RU)
 
-Meshwright offers three engines behind one **Reduce** panel. All of them target an
-**absolute face count**, and all of them report how far the result strays from the original.
+За одной панелью **«Упрощение»** — три движка. Все целятся в **абсолютное число граней** и все сообщают, насколько результат ушёл от оригинала.
 
-## Choosing an engine
+## Выбор движка
 
-| | Best for | Keeps hard edges | Topology | Speed |
+| | Лучше для | Держит жёсткие края | Топология | Скорость |
 |---|---|---|---|---|
-| **Smart retopo** (QuadriFlow) | Sculpts, scans, organic shapes, true low-poly | Optional | Rebuilt as clean quads | Slowest |
-| **Decimate** (quadric) | Mechanical parts, CAD, anything with flat faces and crisp edges | Yes, best | Preserved | Fast |
-| **Uniform** (isotropic) | Noisy scans, meshes with wildly uneven triangle sizes | No | Rebuilt as even triangles | Fast |
+| **Умная ретопология** (QuadriFlow) | Скульпт, сканы, органика, настоящий лоу-поли | Опционально | Перестраивается чистыми quad-ами | Самая медленная |
+| **Децимация** (quadric) | Механика, CAD, плоские грани и резкие края | Да, лучше всех | Сохраняется | Быстро |
+| **Равномерная** (изотропная) | Шумные сканы, сетки с рваным размером треугольников | Нет | Перестраивается ровными треугольниками | Быстро |
 
-**Rule of thumb:** if the model was sculpted or scanned, use *Smart retopo*. If it came from CAD,
-use *Decimate*. If triangle sizes are a mess, use *Uniform* first, then decimate.
+**Правило большого пальца:** модель лепили или сканировали — *умная ретопология*. Пришла из CAD — *децимация*. Размеры треугольников вразнобой — сначала *равномерная*, потом децимация.
 
-## Surface deviation
+## Отклонение поверхности
 
-After every reduction Meshwright samples both surfaces and reports:
+После каждого упрощения Meshwright семплирует обе поверхности и сообщает:
 
-- **max** — the worst deviation anywhere, in millimetres
-- **mean** — the average deviation
-- **% of size** — the maximum relative to the model's largest dimension
+- **макс.** — худшее отклонение хоть где-то, в миллиметрах
+- **среднее** — в среднем
+- **% от размера** — максимум относительно самого большого габарита модели
 
-Under ~1 % is visually indistinguishable on a print. Above ~5 % you are losing detail you may care
-about. The number is shown in the panel, the console and the JSON report.
+До ~1% на печати не отличить. Выше ~5% — теряете мелочь, о которой можете пожалеть. Число — на панели, в консоли и в JSON-отчёте.
 
-## Worked example
+## Разобранный пример
 
-The miniature in the README: **1,994,490 triangles, 23 separate pieces, genus 114, watertight.**
+Миниатюра из README: **1 994 490 треугольников, 23 отдельных куска, род 114, герметична.**
 
-| Target | Engine | Result | Time | Max deviation |
+| Цель | Движок | Итог | Время | Макс. отклонение |
 |---|---|---|---|---|
-| 50,000 | Smart retopo | 41,198 faces, watertight, 23 pieces | ~90 s | 0.043 mm (4.3 %) |
+| 50 000 | Умная ретопология | 41 198 граней, герметично, 23 куска | ~90 с | 0,043 мм (4,3%) |
 
-The readiness score stayed at **94** — identical to the source.
+Оценка готовности осталась **94** — как у исходника.
 
-## How Meshwright keeps reduction safe
+## Как упрощение остаётся безопасным
 
-Remeshers are not obliged to hand back a valid solid, and on complex topology they often do not.
-QuadriFlow on this miniature produced 24 holes, 12 non-manifold edges and 6 extra shells on its own.
+Ремешерам сдавать валидное тело никто не обещал, и на сложной топологии они часто не сдают. QuadriFlow на этой миниатюре сам по себе сделал 24 дыры, 12 немногообразных краёв и 6 лишних кусков.
 
-Meshwright therefore:
+Поэтому Meshwright:
 
-1. **Processes each piece separately**, so a multi-part model keeps its parts and each gets a
-   proportional share of the face budget.
-2. **Skips retopology on small pieces** (under ~4,000 triangles, or a target under 400) — a quad
-   field cannot be built cleanly on a 200-triangle gem, so those are decimated instead.
-3. **Pre-decimates very dense pieces** before building the quad field. QuadriFlow does not need
-   two million input faces to produce 45,000 quads; this roughly halves the time with no loss of accuracy.
-4. **Verifies every piece** afterwards. If the source was watertight and the result is not, MeshFix
-   repairs it; if that still fails, the piece falls back to the next engine.
-5. **Cleans the assembled result** — merges vertices, drops degenerate and duplicate faces, fills
-   any remaining small holes, unifies winding.
-6. **Measures deviation** and records everything in the JSON report.
+1. **Ведёт каждый кусок отдельно** — модель из кусков сохраняет куски, каждому достаётся доля бюджета граней.
+2. **Пропускает ретопологию мелочи** (меньше ~4000 треугольников или цели меньше 400) — чистое quad-поле на самоцвете в 200 треугольников не построить, их децимируют.
+3. **Пред-упрощает очень плотные куски** до quad-поля. QuadriFlow не нужны два миллиона входных граней ради 45 000 quad-ов; время режется примерно вдвое без потери точности.
+4. **Проверяет каждый кусок** после. Был герметичным, стал нет — чинит MeshFix; не вышло — кусок падает на следующий движок.
+5. **Чистит собранный итог** — сливает вершины, сносит вырожденные и дубли граней, закрывает мелкие остатки дыр, сводит обход.
+6. **Меряет отклонение** и всё пишет в JSON-отчёт.
 
-A reduction never hands back a worse mesh than it was given. If something is still wrong, the
-Diagnostics panel says so immediately — and <kbd>Ctrl</kbd>+<kbd>Z</kbd> takes you back.
+Упрощение никогда не отдаёт сетку хуже, чем дали. Если что-то всё равно не так — панель диагностики говорит сразу, а <kbd>Ctrl</kbd>+<kbd>Z</kbd> возвращает обратно.
 
-## Going really low-poly
+## Совсем лоу-поли
 
-The presets go down to **500 faces**. Below a few hundred, use *Smart retopo* — quadric collapse
-produces increasingly ugly slivers at extreme ratios, while a quad field degrades gracefully.
-Check the deviation figure: at low-poly targets it is the only honest measure of what you lost.
+Пресеты спускаются до **500 граней**. Ниже пары сотен — только *умная ретопология*: quadric-децимация на экстремальных сжатиях плодит всё более уродливые иголки, а quad-поле деградирует плавно. Смотрите на отклонение: на лоу-поли целях это единственная честная мера потерь.
 
+## Почему умная ретопология иногда едет другим движком
 
-## Why smart retopology sometimes uses a different engine
+QuadriFlow строит quad-поле по кривизне, и эта оптимизация либо быстро сходится, либо вообще нет. Время по размеру входа не предсказать: замерено на одной модели с одного исходника на разных децимациях — 2 секунды на 20 000 граней, больше четырёх минут на 32 000 и на 72 000, затем 7,5 секунд на 189 000. А ещё умеет падать наотмашь — assertion внутри Eigen, который в том же процессе закрыл бы приложение посреди операции.
 
-QuadriFlow builds a curvature-aligned quad field, and that optimisation either
-converges quickly or does not converge at all. Its running time cannot be predicted
-from the size of the input: measured on one model, from the same source at different
-decimation levels, it took 2 seconds at 20,000 faces, more than four minutes at 32,000
-and at 72,000, then 7.5 seconds at 189,000. It can also abort outright — an assertion
-failure inside Eigen, which in-process would close the application mid-operation.
+Поэтому Meshwright гоняет его в дочернем процессе с двумя минутами на кусок. Упал или не сошёлся — кусок падает на равномерный ремеш или quadric-децимацию: быстро, предсказуемо, а в логе — какой движок реально сделал работу. Результат за две минуты бьёт может-результат за десять.
 
-So Meshwright runs it in a child process and gives it two minutes per piece. If it
-crashes or does not converge, the piece falls through to uniform remeshing or quadric
-collapse, which are quick and predictable, and the log says which engine actually did
-the work. A result in two minutes beats a maybe-result in ten.
+Прежде чем QuadriFlow увидит плотный кусок, тот децимируется до строящегося поля. Раньше это шло напрямую в топологически сохраняющую децимацию MeshLab — верно и медленно: 73 секунды с пяти миллионов граней до двухсот тысяч. Вдвое быстрее и лучше: fast-simplification делает массу за пять секунд, но рвёт поверхность, а MeshFix зашивает за одиннадцать, сохраняя 96% треугольников. Сквозь на той же модели — 27 секунд вместо 82, а готовая ретопология ушла от оригинала на 4,95% вместо 9,68%. Где цепочка не даёт многообразие — всё ещё отрабатывает MeshLab.
 
-Before QuadriFlow sees a dense piece it is decimated to something it can build a field
-on. That used to go straight to MeshLab's topology-preserving collapse, which is
-correct and slow — 73 seconds to take five million faces to two hundred thousand.
-Splitting it in two is quicker and better: fast-simplification does the bulk in five
-seconds but tears the surface, and MeshFix sews it closed in eleven while keeping 96%
-of the triangles. End to end on the same model that is 27 seconds instead of 82, and
-the finished retopology deviated 4.95% from the original rather than 9.68%. MeshLab
-still runs when that chain cannot produce a manifold.
+Оригинал на английском: [REDUCTION.en.md](REDUCTION.en.md).

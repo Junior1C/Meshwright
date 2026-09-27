@@ -62,7 +62,7 @@
         if (slMetallic) slMetallic.oninput = () => { $('valMetallic').textContent = slMetallic.value; };
         if (slDisplace) slDisplace.oninput = () => {
             const mm = parseFloat(slDisplace.value);
-            $('valDisplace').textContent = mm > 0 ? `${mm.toFixed(1)} mm` : 'off';
+            $('valDisplace').textContent = mm > 0 ? `${mm.toFixed(1)} mm` : T('tex.off');
             if (window.viewer) window.viewer.setDisplacement(mm);
         };
 
@@ -88,12 +88,12 @@
 
                     if (res && res.success) {
                         await applyTextureState(res);
-                        toast('pbr', { kind: 'ok', title: 'PBR textures generated', body: 'Albedo, normal, roughness, metallic, AO and height mapped' });
+                        toast('pbr', { kind: 'ok', title: T('tex.generated'), body: T('tex.generatedBody') });
                     } else if (res && res.error) {
-                        toast('pbr', { kind: 'error', title: 'Texture Generation Failed', body: res.error });
+                        toast('pbr', { kind: 'error', title: T('tex.genFailed'), body: res.error });
                     }
                 } catch (e) {
-                    toast('pbr', { kind: 'error', title: 'Error', body: String(e) });
+                    toast('pbr', { kind: 'error', title: T('tex.genError'), body: String(e) });
                 } finally {
                     btnLoadTex.disabled = false;
                 }
@@ -107,14 +107,14 @@
                     if (res && res.success && res.result) {
                         toast('tex_exp', {
                             kind: 'ok',
-                            title: 'Textures Exported',
-                            body: `Saved ${res.result.count} maps & UV wireframe to ${res.result.directory}`
+                            title: T('tex.exported'),
+                            body: T('tex.exportedBody', { n: res.result.count, dir: res.result.directory })
                         });
                     } else if (res && !res.canceled) {
-                        toast('tex_exp', { kind: 'error', title: 'Export Failed', body: res.error || 'Unknown error' });
+                        toast('tex_exp', { kind: 'error', title: T('tex.exportFailed'), body: res.error || T('tex.unknownError') });
                     }
                 } catch (e) {
-                    toast('tex_exp', { kind: 'error', title: 'Export Error', body: String(e) });
+                    toast('tex_exp', { kind: 'error', title: T('tex.exportError'), body: String(e) });
                 }
             });
         }
@@ -126,12 +126,12 @@
                     if (res && res.success) {
                         await applyTextureState(res);
                         const count = (res.reloaded && res.reloaded.reloaded_channels) ? res.reloaded.reloaded_channels.length : 0;
-                        toast('tex_reload', { kind: 'ok', title: 'Textures Reloaded', body: `Refreshed ${count} channels from disk` });
+                        toast('tex_reload', { kind: 'ok', title: T('tex.reloaded'), body: T('tex.reloadedBody', { n: count }) });
                     } else if (res && res.error) {
-                        toast('tex_reload', { kind: 'error', title: 'Reload Failed', body: res.error });
+                        toast('tex_reload', { kind: 'error', title: T('tex.reloadFailed'), body: res.error });
                     }
                 } catch (e) {
-                    toast('tex_reload', { kind: 'error', title: 'Reload Error', body: String(e) });
+                    toast('tex_reload', { kind: 'error', title: T('tex.reloadError'), body: String(e) });
                 }
             });
         }
@@ -141,12 +141,12 @@
                 try {
                     const res = await api().export_baked_glb();
                     if (res && res.success) {
-                        toast('bake', { kind: 'ok', title: 'Baked Model Saved', body: `GLB (${res.size_mb} MB) with embedded PBR textures` });
+                        toast('bake', { kind: 'ok', title: T('tex.baked'), body: T('tex.bakedBody', { n: res.size_mb }) });
                     } else if (res && !res.canceled) {
-                        toast('bake', { kind: 'error', title: 'Bake Failed', body: res.error || 'Could not write GLB' });
+                        toast('bake', { kind: 'error', title: T('tex.bakeFailed'), body: res.error || T('tex.bakeNoWrite') });
                     }
                 } catch (e) {
-                    toast('bake', { kind: 'error', title: 'Bake Error', body: String(e) });
+                    toast('bake', { kind: 'error', title: T('tex.bakeError'), body: String(e) });
                 }
             });
         }
@@ -164,13 +164,10 @@
             const res = await api().unwrap_model_uvs(force);
 
             if (res && res.needs_confirm) {
-                const lost = res.has_textures
-                    ? 'The texture maps loaded for this model will be preserved as reference, but belong to the old layout.'
-                    : 'Anything already painted against the old layout will no longer line up.';
-                confirmModal('Replace the existing UV layout?',
-                    `<p>This model already has UV coordinates. Unwrapping builds a completely new layout.</p>
-                     <p>${lost} You can undo this with Ctrl+Z.</p>`,
-                    'Unwrap anyway', () => runUnwrap(true));
+                const lost = res.has_textures ? T('tex.unwrapLostTex') : T('tex.unwrapLostPaint');
+                confirmModal(T('tex.unwrapConfirm'),
+                    T('tex.unwrapConfirmBody', { lost: lost }),
+                    T('tex.unwrapAnyway'), () => runUnwrap(true));
                 return;
             }
 
@@ -178,32 +175,37 @@
                 if (window.meshwright && window.meshwright.showModel) window.meshwright.showModel(res);
                 if (res.uv_layout) { uvData = res.uv_layout; uvStateId = res.uv_layout.state_id; }
                 const st = res.uv_stats;
+                lastUvStats = st || null;
                 if (st) {
-                    const statEl = $('uvStats');
-                    const islands = `${st.islands} island${st.islands === 1 ? '' : 's'}`;
-                    const even = st.even ? 'even texture density' : `density varies ${st.texel_spread.toFixed(1)}×`;
-                    statEl.textContent = `${islands}, ${st.seam_edges.toLocaleString()} seam edges, `
-                        + `${st.atlas_size[0]}×${st.atlas_size[1]} atlas · ${even}`;
-                    statEl.classList.remove('hidden');
+                    paintUvStats(st);
                 }
                 if (btnViewUv) btnViewUv.disabled = false;
                 if (btnOpenUv) btnOpenUv.disabled = false;
                 toast('unwrap', {
                     kind: st && st.even === false ? 'warn' : 'ok',
-                    title: 'UVs unwrapped',
+                    title: T('tex.unwrapped'),
                     body: st && st.even === false
-                        ? `The mesh is unchanged, but this shape is hard to flatten — texture density varies about ${st.texel_spread.toFixed(1)}× across it.`
-                        : 'The mesh itself is unchanged — only texture coordinates were added.',
+                        ? T('tex.unwrappedUneven', { s: st.texel_spread.toFixed(1) })
+                        : T('tex.unwrappedEven'),
                     ms: st && st.even === false ? 12000 : 6000,
                 });
             } else if (res && res.error) {
-                toast('unwrap', { kind: 'error', title: 'Could not unwrap', body: res.error, ms: 14000 });
+                toast('unwrap', { kind: 'error', title: T('tex.unwrapFailed'), body: res.error, ms: 14000 });
             }
         } catch (e) {
-            toast('unwrap', { kind: 'error', title: 'Could not unwrap', body: String(e) });
+            toast('unwrap', { kind: 'error', title: T('tex.unwrapFailed'), body: String(e) });
         } finally {
             if (btnUnwrap) btnUnwrap.disabled = false;
         }
+    }
+
+    let lastUvStats = null;
+    function paintUvStats(st) {
+        const statEl = $('uvStats');
+        const even = st.even ? T('tex.evenDensity') : T('tex.varyingDensity', { s: st.texel_spread.toFixed(1) });
+        statEl.textContent = `${Tp('pl.islands', st.islands, { n: st.islands })}, ${st.seam_edges.toLocaleString()} ${T('tex.seamEdges')} `
+            + `${st.atlas_size[0]}×${st.atlas_size[1]} atlas · ${even}`;
+        statEl.classList.remove('hidden');
     }
 
     function confirmModal(title, bodyHtml, confirmLabel, onConfirm) {
@@ -237,7 +239,7 @@
                 const res = await api().get_texture_maps();
                 if (res && res.success) applyMaps(res.maps, res.texture_version);
             } catch (e) {
-                toast('tex_fetch', { kind: 'error', title: 'Could not load the texture maps', body: String(e) });
+                toast('tex_fetch', { kind: 'error', title: T('tex.fetchFailed'), body: String(e) });
             }
         }
 
@@ -283,7 +285,7 @@
             slDisplace.disabled = !hasHeight;
             if (!hasHeight) {
                 slDisplace.value = 0;
-                $('valDisplace').textContent = 'off';
+                $('valDisplace').textContent = T('tex.off');
                 if (window.viewer) window.viewer.setDisplacement(0);
             }
         }
@@ -312,7 +314,7 @@
         hasUv = false;
         const slDisplace = $('pbrDisplace');
         if (slDisplace) { slDisplace.value = 0; slDisplace.disabled = true; }
-        if ($('valDisplace')) $('valDisplace').textContent = 'off';
+        if ($('valDisplace')) $('valDisplace').textContent = T('tex.off');
         uvZoom = 1.0;
         uvPan = { x: 0, y: 0 };
 
@@ -463,8 +465,7 @@
         const hint = $('uvHint');
         if (hint) {
             hint.textContent = uvData && uvData.outlines_only
-                ? `Showing the ${uvData.edge_count.toLocaleString()} island outlines — this model has too many `
-                  + `triangles to draw edge for edge.`
+                ? T('tex.outlines', { n: uvData.edge_count.toLocaleString() })
                 : '';
             hint.classList.toggle('hidden', !(uvData && uvData.outlines_only));
         }
@@ -489,7 +490,7 @@
             ctx.fillStyle = '#8a9099';
             ctx.font = '14px sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('No UV coordinates yet. Click "Unwrap UVs" to unfold.', w / 2, h / 2);
+            ctx.fillText(T('tex.noUv'), w / 2, h / 2);
         }
 
         // Outer border
@@ -507,6 +508,13 @@
     }
 
     document.addEventListener('DOMContentLoaded', init);
+    if (window.I18N) window.I18N.onChange(() => {
+        if (lastUvStats) paintUvStats(lastUvStats);
+        if ($('valDisplace') && $('pbrDisplace') && $('pbrDisplace').disabled) {
+            $('valDisplace').textContent = T('tex.off');
+        }
+        renderUvCanvas();
+    });
     window.meshwrightTexture = {
         applyTextureState, resetTextureState, runUnwrap,
         openUvModal, closeUvModal, renderUvCanvas,

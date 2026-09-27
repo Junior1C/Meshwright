@@ -37,11 +37,11 @@
         const label = $('ringBlenderState');
         blenderReady = !!(state && state.found);
         if (blenderReady) {
-            label.textContent = `Blender: ${state.path.split(/[\\/]/).pop()}`;
+            label.textContent = T('ring.blender', { name: state.path.split(/[\\/]/).pop() });
             label.title = state.path;
             label.className = 'ring-blender-state ok';
         } else {
-            label.textContent = 'Blender not found — fixing needs it';
+            label.textContent = T('ring.noBlender');
             label.title = (state && state.reason) || '';
             label.className = 'ring-blender-state missing';
         }
@@ -52,7 +52,7 @@
         const has = !!app().hasModel;
         $('btnRingMeasure').disabled = !has;
         $('btnRingFix').disabled = !has || !blenderReady;
-        $('btnRingFix').title = blenderReady ? '' : 'This needs Blender. Use “Find Blender…”.';
+        $('btnRingFix').title = blenderReady ? '' : T('ring.needBlender');
     }
 
     /* ---------- showing what was measured ---------- */
@@ -66,49 +66,50 @@
                 us: +(7 + (ring.circumference_mm / (scale / 100) - 54.4) / 2.55).toFixed(2) }
             : null;
         const rows = [
-            ['Bore', `${mm(ring.bore_min_mm)} – ${mm(ring.bore_max_mm)}`],
-            [cast ? 'Size as printed' : 'Size', `ISO ${ring.iso_size} · US ${ring.us_size}`],
-            ['Band width', mm(ring.band_width_mm)],
-            ['Outer', mm(ring.outer_diameter_mm)],
-            ['Thinnest wall', ring.thinnest_wall_mm == null
-                ? 'not measurable on this mesh' : mm(ring.thinnest_wall_mm)],
+            [T('ring.bore'), `${mm(ring.bore_min_mm)} – ${mm(ring.bore_max_mm)}`],
+            [cast ? T('ring.sizePrinted') : T('ring.size'), `ISO ${ring.iso_size} · US ${ring.us_size}`],
+            [T('ring.band'), mm(ring.band_width_mm)],
+            [T('ring.outer'), mm(ring.outer_diameter_mm)],
+            [T('ring.wall'), ring.thinnest_wall_mm == null
+                ? T('ring.wallNA') : mm(ring.thinnest_wall_mm)],
         ];
-        if (cast) rows.splice(2, 0, ['Size once cast', `ISO ${cast.iso} · US ${cast.us}`]);
+        if (cast) rows.splice(2, 0, [T('ring.sizeCast'), `ISO ${cast.iso} · US ${cast.us}`]);
         const trouble = [];
         if (ring.out_of_round) {
-            trouble.push(`The bore is <strong>${mm(ring.ovality_mm)} out of round</strong>. `
-                + `A finger needs a circle; this is an oval.`);
+            trouble.push(T('ring.oval', { w: mm(ring.ovality_mm) }));
         }
         if (ring.too_thin) {
-            trouble.push(`The band is <strong>${mm(ring.thinnest_wall_mm)}</strong> at its thinnest. `
-                + `A ring band wants at least ${mm(ring.rules && ring.rules.band_min_mm || 1.0)} `
-                + `to fill in casting and to survive being worn.`);
+            trouble.push(T('ring.thin', { w: mm(ring.thinnest_wall_mm), m: mm(ring.rules && ring.rules.band_min_mm || 1.0) }));
         }
         if (ring.thinnest_wall_mm == null) {
-            trouble.push('Wall thickness could not be measured: the mesh is not a closed, '
-                + 'consistently wound solid. Repair it first and it becomes exact.');
+            trouble.push(T('ring.wallDoubt'));
         }
 
         into.innerHTML =
             `<div class="ring-verdict ${trouble.length ? 'warn' : 'good'}">`
-            + (trouble.length ? 'Not ready to cast' : 'Measures like a wearable ring') + '</div>'
+            + (trouble.length ? T('ring.notReady') : T('ring.wearable')) + '</div>'
             + `<table class="ring-facts">${rows.map(([k, v]) =>
                 `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>`
             + trouble.map(t => `<div class="ring-note">${t}</div>`).join('');
     }
 
+    let lastMeasured = null;   // {ring, scale} for re-rendering on language switch
+    let lastFixed = null;
+
     async function measure() {
         const button = $('btnRingMeasure');
         button.disabled = true;
         const was = button.textContent;
-        button.textContent = 'Measuring…';
+        button.textContent = T('ring.measuring');
         try {
             const res = await api().measure_ring();
             if (!res || !res.success) {
+                lastMeasured = null;
                 $('ringReport').innerHTML = `<div class="ring-note">${text((res && res.error)
-                    || 'This could not be measured.')}</div>`;
+                    || T('ring.noMeasure'))}</div>`;
                 return;
             }
+            lastMeasured = { ring: res.ring, scale: 100 };
             showMeasurement(res.ring, $('ringReport'), 100);
             // Offer back the size it already is, so "just make it round" is one click.
             if ($('ringSizeSystem').value === 'us') $('ringSize').value = res.ring.us_size;
@@ -125,7 +126,7 @@
         const button = $('btnRingFix');
         button.disabled = true;
         const was = button.textContent;
-        button.textContent = 'Fixing…';
+        button.textContent = T('ring.fixing');
         const system = $('ringSizeSystem').value;
         const size = parseFloat($('ringSize').value) || 0;
         try {
@@ -138,41 +139,59 @@
                 parseFloat($('ringScale').value) || 100,
                 $('ringRepairFirst').checked);
             if (!res || !res.success) {
+                lastFixed = null;
                 $('ringResult').innerHTML = `<div class="ring-note">${text((res && res.error)
-                    || 'The ring could not be fixed.')}</div>`;
+                    || T('ring.noFix'))}</div>`;
                 return;
             }
             if (app().showModel) app().showModel(res);
-            showMeasurement(res.ring, $('ringResult'), parseFloat($('ringScale').value) || 100);
+            const scaleNow = parseFloat($('ringScale').value) || 100;
+            lastFixed = { ring: res.ring, scale: scaleNow };
+            showMeasurement(res.ring, $('ringResult'), scaleNow);
 
-            const asked = system === 'iso' ? size : null;
             const got = res.ring;
             const extra = [];
             if (got.out_of_round) {
-                extra.push(`Still ${mm(got.ovality_mm)} out of round. Cutting a bore can only take `
-                    + `metal away, and this one was already wider than the size asked for in places. `
-                    + `<strong>ISO ${got.round_from_iso} (US ${got.round_from_us})</strong> or larger `
-                    + `comes out truly round.`);
+                extra.push(T('ring.stillOval', { w: mm(got.ovality_mm), iso: got.round_from_iso, us: got.round_from_us }));
             }
-            const scale = parseFloat($('ringScale').value) || 100;
-            if (Math.abs(scale - 100) > 0.001) {
-                const finished = (got.circumference_mm / (scale / 100)).toFixed(1);
-                extra.push(`The model on screen is the <strong>wax</strong>, printed at ${scale}% `
-                    + `and measuring ISO ${got.iso_size}. Allowing for what the wax and the metal `
-                    + `lose, the finished ring should come out at <strong>ISO ${finished}</strong>. `
-                    + `That percentage is yours to dial in with a test cast.`);
+            if (Math.abs(scaleNow - 100) > 0.001) {
+                const finished = (got.circumference_mm / (scaleNow / 100)).toFixed(1);
+                extra.push(T('ring.wax', { p: scaleNow, iso: got.iso_size, f: finished }));
             }
             if (extra.length) {
                 $('ringResult').innerHTML += extra.map(t =>
                     `<div class="ring-note">${t}</div>`).join('');
             }
-            if (app().setStatus) app().setStatus(`Ring corrected to ISO ${got.iso_size}`, 'ok', 4000);
+            if (app().setStatus) app().setStatus(T('ring.corrected', { iso: got.iso_size }), 'ok', 4000);
         } catch (e) {
             $('ringResult').innerHTML = `<div class="ring-note">${text(e.message)}</div>`;
         } finally {
             button.textContent = was;
             updateButtons();
         }
+    }
+
+    function refreshTexts() {
+        if (lastMeasured) showMeasurement(lastMeasured.ring, $('ringReport'), lastMeasured.scale);
+        if (lastFixed) {
+            showMeasurement(lastFixed.ring, $('ringResult'), lastFixed.scale);
+            const got = lastFixed.ring;
+            const extra = [];
+            if (got.out_of_round) {
+                extra.push(T('ring.stillOval', { w: mm(got.ovality_mm), iso: got.round_from_iso, us: got.round_from_us }));
+            }
+            if (Math.abs(lastFixed.scale - 100) > 0.001) {
+                const finished = (got.circumference_mm / (lastFixed.scale / 100)).toFixed(1);
+                extra.push(T('ring.wax', { p: lastFixed.scale, iso: got.iso_size, f: finished }));
+            }
+            if (extra.length) {
+                $('ringResult').innerHTML += extra.map(t =>
+                    `<div class="ring-note">${t}</div>`).join('');
+            }
+        }
+        updateButtons();
+        const iso = $('ringSizeSystem').value === 'iso';
+        $('ringSizeLabel').textContent = iso ? T('ring.isoSize') : T('ring.usSize');
     }
 
     /* ---------- wiring ---------- */
@@ -188,7 +207,7 @@
 
         $('ringSizeSystem').addEventListener('change', () => {
             const iso = $('ringSizeSystem').value === 'iso';
-            $('ringSizeLabel').textContent = iso ? 'Inner circumference (mm)' : 'US size';
+            $('ringSizeLabel').textContent = iso ? T('ring.isoSize') : T('ring.usSize');
             const box = $('ringSize');
             box.step = iso ? 0.5 : 0.25;
             box.min = iso ? 35 : 1;
@@ -221,6 +240,8 @@
 
     window.meshwrightRing = {
         refresh: updateButtons,
-        clear: () => { $('ringReport').innerHTML = ''; $('ringResult').innerHTML = ''; },
+        clear: () => { lastMeasured = null; lastFixed = null; $('ringReport').innerHTML = ''; $('ringResult').innerHTML = ''; },
     };
+
+    if (window.I18N) window.I18N.onChange(refreshTexts);
 })();

@@ -1,242 +1,162 @@
-# User guide
+# Руководство пользователя (RU)
 
-## Opening a model
+## Открытие модели
 
-Drag a file onto the window, or press <kbd>Ctrl</kbd>+<kbd>O</kbd>.
-For `.blend` files, install Blender or set `MESHWRIGHT_BLENDER` to its executable. The active scene is imported with modifiers and glTF-compatible materials.
+Перетащите файл на окно или нажмите <kbd>Ctrl</kbd>+<kbd>O</kbd>.
+Для `.blend` поставьте Blender или укажите путь к нему в `MESHWRIGHT_BLENDER`. Активная сцена импортируется с модификаторами и glTF-совместимыми материалами.
 
-Supported: **BLEND, OBJ, FBX, GLB, GLTF, STL, PLY, 3MF, DAE, OFF, 3DS**.
+Поддерживаются: **BLEND, OBJ, FBX, GLB, GLTF, STL, PLY, 3MF, DAE, OFF, 3DS**.
 
-Meshwright ships no 3D models — it is a workshop for files you already have, so nothing has to be
-downloaded and no model folder has to be configured. To try it without a file of your own, click
-**Load demo model** in the empty viewport: a small object is built in memory with a hole in it, a
-patch of inside-out triangles and a loose second piece, which **Repair** takes to watertight.
+Своих моделей у Meshwright нет — это мастерская для ваших файлов: ничего качать и никакую папку настраивать не надо. Чтобы попробовать без своего файла, нажмите **«Загрузить демо-модель»** в пустом вьюпорте: в памяти соберётся мелкий объект — с дырой, пятном вывернутых треугольников и оторванным вторым куском; кнопка **«Починить»** доводит его до герметичности.
 
-Loading shows every step in the **Activity console** (top-right button, or <kbd>Ctrl</kbd>+<kbd>`</kbd>):
-which parser is used, the triangle count, vertex merging, analysis and timings. A two-million-triangle
-model takes roughly 20 seconds.
+Загрузка показывает каждый шаг в **консоли активности** (кнопка справа сверху или <kbd>Ctrl</kbd>+<kbd>`</kbd>): какой парсер взят, число треугольников, слияние вершин, анализ и время. Модель на два миллиона треугольников — примерно 20 секунд.
 
-## Reading the diagnostics
+Язык интерфейса — кнопка **EN/РУ** в верхней панели, выбор запоминается.
 
-The score ring gives you the verdict at a glance. Below it, every issue is listed with a severity dot:
+## Чтение диагностики
 
-- 🔴 **critical** — the model will fail or misprint
-- 🟠 **warning** — expect artifacts
-- 🔵 **note** — worth knowing
+Кольцо оценки сразу показывает вердикт. Ниже каждая проблема перечислена с точкой тяжести:
 
-**Click any issue** to fly the camera to it. Exact locations are marked in cyan, with a translucent
-sphere for the general area so even a single bad triangle is findable. Click again, press
-<kbd>Esc</kbd>, or use **Clear** to dismiss.
+- 🔴 **критично** — модель не напечатается или напечатается браком
+- 🟠 **предупреждение** — ждите артефактов
+- 🔵 **заметка** — стоит знать
 
-**Re-analyse** re-runs the checks on the current mesh at any time. **Save JSON** writes the full
-report — diagnostics plus every operation applied — for records or a client.
+**Клик по проблеме** подводит к ней камеру. Точные места — цианом, плюс полупрозрачная сфера общего района: находится даже один битый треугольник. Повторный клик, <kbd>Esc</kbd> или **«Очистить»** — убрать.
 
-See [DIAGNOSTICS.md](DIAGNOSTICS.md) for what each check means.
+**«Перепроверить»** гоняет проверки по текущей сетке в любой момент. **«Сохранить JSON»** пишет полный отчёт — диагностику плюс каждую применённую операцию — для архива или заказчика.
 
-## Repairing
+Что значит каждая проверка — в [DIAGNOSTICS.md](DIAGNOSTICS.md).
 
-Tick **Force watertight** (default) to allow the voxel rebuild as a last resort — it guarantees a
-closed solid but smooths fine detail. Untick it if detail matters more than a guaranteed seal.
+## Ремонт
 
-Press **Repair mesh** (<kbd>Ctrl</kbd>+<kbd>R</kbd>). Afterwards:
+Галка **«Герметичность любой ценой»** (по умолчанию) разрешает напоследок воксельную перестройку: замкнутое тело гарантирует, но мелочь замыливает. Снимите, если деталь важнее гарантированного замыкания.
 
-- **What was fixed** lists only the stages that actually changed something.
-- **Before → after** shows each metric that moved, improvements in green.
-- If issues remain, it says so — the report is measured on the repaired mesh, not predicted.
+Нажмите **«Починить сетку»** (<kbd>Ctrl</kbd>+<kbd>R</kbd>). После:
 
-**Fix sliver triangles** appears only when slivers are present. It merges needle triangles into
-their larger neighbours and flips cap triangles, leaving surrounding geometry in place.
+- **«Что исправлено»** — только стадии, которые реально что-то изменили.
+- **«Было → стало»** — каждая сдвинувшаяся метрика, улучшения зелёным.
+- Если проблемы остались — так и говорится: отчёт намерян на починенной сетке, а не предсказан.
 
-If a repair would make things worse, Meshwright refuses it, keeps your previous state and offers
-**Apply anyway**. That is deliberate — see [Safety](#safety).
+**«Убрать игольчатые треугольники»** появляется, только если иголки есть. Иглы сливает с соседями покрупнее, крышки переворачивает, окружающую геометрию не трогает.
 
-## Separate pieces
+Если ремонт сделал бы хуже, Meshwright отказывает, оставляет прошлое состояние и предлагает **«Применить всё равно»**. Так задумано — см. [Безопасность](#безопасность).
 
-Click a piece in the viewport to select it. **Shift-click** toggles pieces in the selection; click empty space to clear it. Selected pieces turn red and the list updates automatically. Drag to orbit as usual.
+## Отдельные куски
 
-When a model contains several disconnected pieces they are colour-coded in the viewport and listed
-with triangle counts and sizes. Tick the ones you want gone — they turn red — then **Remove selected**
-(<kbd>Del</kbd>). <kbd>Ctrl</kbd>+<kbd>A</kbd> selects all; **Highlight** toggles the colouring off.
+Клик по куску во вьюпорте выбирает его. **Shift+клик** переключает куски в выборе; клик по пустому месту снимает выбор. Выбранные краснеют, список обновляется сам. Крутить — drag как обычно.
 
-You cannot remove every piece.
+Модель из нескольких несвязанных кусков: во вьюпорте они раскрашены и перечислены с треугольниками и размерами. Отметьте ненужные — покраснеют — затем **«Удалить выбранные»** (<kbd>Del</kbd>). <kbd>Ctrl</kbd>+<kbd>A</kbd> — выбрать всё; **«Подсветка»** — выключить раскраску.
 
-## Orientation
+Удалить все куски нельзя.
 
-Turn on **Rotate** in the viewport toolbar (<kbd>R</kbd>) and drag the rings, or use **X / Y / Z +90°**
-in the Orientation panel. Rotation is instant in the viewport and applies to the exported STL.
+## Ориентация
 
-## Reducing polygons
+Включите **«Поворот»** на панели вьюпорта (<kbd>R</kbd>) и тащите за кольца, либо **X / Y / Z +90°** на панели «Ориентация». Во вьюпорте поворот мгновенный и применяется к экспорту в STL.
 
-Pick an engine, set a target, press **Reduce polygons**. Presets go from 500 to 50k, or type an exact
-face count. The result line reports the surface deviation in millimetres — the honest measure of what
-you lost. Full guidance in [REDUCTION.md](REDUCTION.md).
+## Упрощение полигонов
 
-## Textures
+Выберите движок, задайте цель, нажмите **«Уменьшить полигоны»**. Пресеты от 500 до 50k, либо вбейте точное число граней. Строка результата сообщает отклонение поверхности в миллиметрах — честную меру потерь. Подробно — в [REDUCTION.md](REDUCTION.md).
 
-Meshwright keeps whatever textures came with your model, and keeps them lined up through
-repair and reduction.
+## Текстуры
 
-**What it picks up on open.** Textures baked into the file (GLB, glTF, FBX) are read from
-the model's own material. Textures the file only points at — an OBJ with its `.mtl`, or a
-folder of PNGs beside the model — are found by name, including the layouts Meshy, Tripo,
-Sketchfab and Blender export: `model.png`, `*_baseColor`, `*_Normal_OpenGL`, `*_Roughness`,
-`*_AO`, and packed `*_ORM` / `*_metallicRoughness` maps, which are unpacked into their
-separate channels. It also looks in `textures/`, `images/`, `materials/` and `.fbm`
-subfolders. If a file both declares a texture and has a stray image sitting beside it, the
-one the file declares wins.
+Meshwright сохраняет текстуры модели и не даёт им сползать ни при ремонте, ни при упрощении.
 
-**Repair and Reduce keep the mapping.** Texture coordinates travel with the model through
-every operation, and the model stays a proper welded solid while they do — repairing or
-decimating a textured model does not turn it into a pile of pieces, and the diagnostics
-score reflects the real geometry. Worst-case drift after decimating to a fiftieth of the
-original face count is under half a texel on a 2048 px map.
+**Что подбирается при открытии.** Вшитые в файл (GLB, glTF, FBX) читаются из материала самой модели. На которые файл только ссылается — OBJ с `.mtl` или папка PNG рядом, — находятся по имени, включая раскладки Meshy, Tripo, Sketchfab и Blender: `model.png`, `*_baseColor`, `*_Normal_OpenGL`, `*_Roughness`, `*_AO`, а пакеты `*_ORM` / `*_metallicRoughness` разбираются по каналам. Заглядывает и в подпапки `textures/`, `images/`, `materials/` и `.fbm`. Если файл и объявляет текстуру, и рядом валяется посторонняя картинка — побеждает объявленная.
 
-**Unwrap UVs** builds a fresh layout for a model that has none. It does not change the
-geometry at all: a watertight model stays watertight and its score does not move. If the
-model already has UVs, Meshwright asks first — a new layout invalidates any texture that
-was painted for the old one.
+**Ремонт и упрощение карту держат.** Текстурные координаты едут с моделью через каждую операцию, а модель остаётся честно сваренным телом: ремонт и децимация текстурированной модели не разваливают её на куски, а оценка отражает настоящую геометрию. Худший дрейф после упрощения до 1/50 граней — меньше полтекселя на карте 2048.
 
-Unwrapping reports what it produced: how many **islands** the layout has, how many
-**seam edges**, the atlas size, and whether the texture density came out even. An uneven
-result — some parts of the model getting noticeably more texture detail than others —
-means the shape is hard to flatten; it is a warning, not a failure, and the layout is
-still usable. Meshwright re-splits and retries automatically to get the evenness it can.
+**«Развернуть УФ»** строит свежую раскладку модели без неё. Геометрию не меняет вообще: герметичная остаётся герметичной, оценка не двигается. Если УФ уже есть — сначала спросит: новая раскладка обесценивает текстуру, нарисованную под старую.
 
-Dense models are fine: a 327,000-face model unwraps in about two seconds. If the
-unwrapper cannot produce a usable layout at all you get a message saying so, not a
-crash — **Reduce** the model first, then unwrap.
+Развёртка отчитывается, что вышло: сколько **островов**, сколько **рёбер швов**, размер атласа и ровная ли плотность текстуры. Неровность — одним частям модели досталось заметно больше деталей текстуры, чем другим — значит, форму тяжело расплющить; это предупреждение, а не провал, раскладка рабочая. Meshwright сам дробит и пробует заново, вытягивая ровность сколько может.
 
-**If your textures look flat or missing**, check what came with the file. Some
-generators — Meshy and Hi3D among them — put a 2×2 placeholder inside the FBX and ship
-the real 2048px maps as separate PNGs beside it; Meshwright ignores the placeholder and
-uses the real files. And a model can simply have no UV coordinates: an untextured
-"generate" export from Meshy has none, and nothing can map a texture onto it until you
-**Unwrap UVs**.
+Плотные модели — нормально: 327 000 граней разворачиваются секунды за две. Если годной раскладки не выходит вовсе — получите сообщение, а не падение: сначала **упростите** модель, потом разворачивайте.
 
-**Load Image / Generate PBR** derives normal, roughness, metallic, ambient-occlusion and
-height maps from any photo or texture.
+**Если текстуры плоские или пропали** — смотрите, что пришло с файлом. Некоторые генераторы — Meshy и Hi3D в их числе — кладут в FBX пустышку 2×2, а настоящие карты 2048 — отдельными PNG рядом; Meshwright пустышку игнорирует и берёт настоящие файлы. А у модели может просто не быть УФ-координат: у нетекстурированного экспорта Meshy их нет, и нанести текстуру не на что, пока не **развернёте УФ**.
 
-Tick **Image tiles seamlessly** if your source is a repeating material — the edges are
-then blended so it tiles without a visible join, and the surface detail carries across
-them. Leave it off for a photograph or a texture painted for this particular model;
-treating those as tiling stamps a hard fake ridge down all four borders of the normal
-map.
+**«Загрузить картинку / Сгенерировать PBR»** выводит карты нормалей, шероховатости, металличности, затенения и высоты из любого фото или текстуры.
 
-**Displace** pushes the surface out along the height map, in millimetres. It moves real
-vertices, so it shows detail on a dense model and almost nothing on a low-poly one — the
-**Height** button in the viewport shows the map itself either way.
+Галка **«Картинка тайлится бесшовно»** — если исходник повторяющийся материал: края тогда смешиваются, стыка не видно, мелочь через них переходит. Для фото или текстуры под конкретную модель — выключить: иначе как тайл она пробьёт жёсткий фальшивый гребень по всем четырём границам карты нормалей.
 
-**Export Maps** writes every channel plus a transparent UV guide you can open as a layer
-in Photoshop or GIMP; **Reload Maps** picks your edits back up. **Save Baked GLB** writes
-one self-contained file with the maps embedded.
+**«Смещение»** выдавливает поверхность по карте высоты, в миллиметрах. Двигает настоящие вершины: на плотной модели мелочь видна, на лоу-поли почти ничего — а кнопка **«Высота»** во вьюпорте показывает саму карту в любом случае.
 
-Anything Meshwright writes out has its seam gutters padded — the colour at the edge of
-each UV island is bled outward into the empty space around it, so the texture does not
-show dark fringes along the seams when a renderer filters or mipmaps it.
+**«Экспорт карт»** пишет все каналы плюс прозрачную УФ-подложку слоем в Photoshop или GIMP; **«Перезагрузить карты»** забирает правки обратно. **«Сохранить запечённый GLB»** пишет один самодостаточный файл со встроенными картами.
 
-## Exporting
+Всё, что пишет Meshwright, — с залитыми швами: цвет с края каждого УФ-острова протягивается наружу в пустоту, чтобы при фильтрации и мипмэппинге по швам не было тёмных каёмок.
 
-Pick the **format** — STL, OBJ, PLY, OFF, GLB, glTF or 3MF — and the **source units** of your file
-(mm, cm or in) so the model is scaled correctly, and leave **Rest on build plate** ticked to centre
-it in X/Y and drop it to Z = 0. **Export** (<kbd>Ctrl</kbd>+<kbd>S</kbd>) writes the file; STL is
-binary. Files are named `<original>-GS-<timestamp>-fixed.<ext>` by default, so an export never
-overwrites the model you started from.
+## Экспорт
 
-OBJ, GLB and glTF carry your texture coordinates and maps out with the model. STL, PLY, OFF
-and 3MF have no way to store them, so those are written as geometry only — which is what a
-slicer wants anyway.
+Выберите **формат** — STL, OBJ, PLY, OFF, GLB, glTF или 3MF — и **единицы исходника** (мм, см, дюймы), чтобы модель отмасштабировалась верно, а **«Положить на стол»** пусть стоит: центрирует по X/Y и опускает на Z = 0. **«Экспорт»** (<kbd>Ctrl</kbd>+<kbd>S</kbd>) пишет файл; STL бинарный. Имена по умолчанию `<original>-GS-<timestamp>-fixed.<ext>` — экспорт никогда не перезапишет исходную модель.
 
-### “Saved, but this is not a printable solid”
+OBJ, GLB и glTF уносят текстурные координаты и карты с моделью. В STL, PLY, OFF и 3MF их положить некуда — пишется только геометрия, слайсеру того и надо.
 
-Meshwright measures the mesh as it writes it and says so when the result is not a closed volume.
-This matters because a slicer fills the **inside** of a solid: an open surface has no inside, so it
-is sliced as a single-wall shell — one perimeter thick, no infill — whatever the infill setting says.
+### «Сохранено, но это не печатное тело»
 
-| Warning | What it means | What to do |
+Meshwright меряет сетку прямо при записи и говорит, когда вышла не замкнутая объёмина. Это важно: слайсер заливает **внутренность** тела; у открытой поверхности внутренности нет — режется одностеночной скорлупой: один периметр в толщину, без заполнения, при любом проценте заполнения.
+
+| Предупреждение | Что значит | Что делать |
 |---|---|---|
-| *not a closed solid — N edges are open* | The mesh is a surface, not a body | Press **Repair**, then export again; the diagnostics must say watertight |
-| *encloses no volume* | The surfaces lie on top of each other | The source model has zero thickness — give it thickness where it was made |
-| *hollow with walls averaging X mm* | It is a genuine shell, thinner than a nozzle can fill | Correct for vase-mode prints; otherwise thicken it |
+| *не замкнутое тело — открытых краёв: N* | Сетка — поверхность, а не тело | Нажмите **«Починить»** и экспортируйте заново; диагностика должна сказать «герметично» |
+| *не замыкает объёма* | Поверхности лежат друг на друге | У исходной модели нулевая толщина — дайте толщину там, где сделана |
+| *полая, стенки в среднем X мм* | Настоящая скорлупа, тоньше, чем сопло зальёт | Нормально для печати вазой; иначе — утолщать |
 
-Inside-out models are turned the right way out on the way to the file, so a mesh a slicer used to
-read as a cavity comes out as a solid.
+Вывернутые модели по дороге в файл разворачиваются наружу: сетка, которую слайсер читал полостью, выходит телом.
 
-## The viewport
+## Вьюпорт
 
-| Control | |
+| Управление | |
 |---|---|
-| Drag | Orbit |
-| Scroll | Zoom |
-| Right-drag | Pan |
-| Compass / preset buttons | Top, Front, Right, Iso, Bottom, Back, Left |
-| <kbd>1</kbd>–<kbd>7</kbd> | The same views |
-| <kbd>F</kbd> | Fit |
+| Drag | Вращать |
+| Колесо | Масштаб |
+| Правая кнопка | Панорама |
+| Компас / кнопки видов | Сверху, Спереди, Справа, Изо, Снизу, Сзади, Слева |
+| <kbd>1</kbd>–<kbd>7</kbd> | Те же виды |
+| <kbd>F</kbd> | Вписать |
 
-**Shaded · Clay · Normals · X-ray** change the material. **Wire** overlays the wireframe, **Edges**
-highlights open boundary edges in red, **Plate** toggles the build plate grid.
+**Тон · Глина · Нормали · Рентген** меняют материал. **Каркас** кладёт сетку поверх, **Края** подсвечивают красным открытые граничные края, **Стол** — сетку стола.
 
-The **Light** panel moves the key light — useful for reading surface detail before printing.
+Панель **«Свет»** двигает ключевой свет — удобно читать мелочь поверхности перед печатью.
 
-Drag the divider between viewport and panel to resize; double-click it to reset. The width is remembered.
+Разделитель между вьюпортом и панелью таскается; двойной клик сбрасывает. Ширина запоминается.
 
-## Knowing what it is doing
+## Всегда знать, что он делает
 
-Anything that takes more than a moment announces itself in the bottom-right corner: what it is doing,
-how many faces are involved and roughly how long to expect, with a live timer and progress bar. When
-it finishes, the notification reports the real elapsed time and the outcome. Click **×** to dismiss,
-or leave it — result notifications fade on their own.
+Всё, что дольше мгновения, объявляется в правом нижнем углу: что делается, сколько граней замешано и сколько примерно ждать, с живым таймером и прогрессом. Как закончит — уведомление доложит реальное время и итог. **×** — скрыть, можно не трогать — уведомления гаснут сами.
 
-The same information, with timestamps, goes to the **Activity console** and to the terminal, so you
-can follow a long run without watching the window.
+То же со временем — в **консоль активности** и в терминал: долгую работу видно, не глядя в окно.
 
-Estimates scale with the model: repairing two million faces is announced as "about 1–2 minutes",
-while a small part is "a moment".
+Оценки растут с моделью: ремонт двух миллионов граней анонсируется как «около 1–2 минут», а мелкая деталь — «момент».
 
-## Safety
+## Безопасность
 
-Every change creates a **numbered state**, shown in the top bar.
+Каждое изменение — **номерное состояние**, номер в верхней панели.
 
-- <kbd>Ctrl</kbd>+<kbd>Z</kbd> undo, <kbd>Ctrl</kbd>+<kbd>Y</kbd> redo — the only ways backwards.
-- **Revert to original file** discards the session and reloads the file as opened. It asks first, and
-  it is itself undoable.
-- A change that would add critical problems or discard most of the geometry is **rejected**; your
-  previous state is kept and you are offered "Apply anyway".
-- Every accepted state is snapshotted to disk in the background. If Meshwright does not close cleanly,
-  the next start offers to **recover** it. Snapshots live in `%LOCALAPPDATA%\Meshwright\sessions` and
-  are removed on a clean exit.
+- <kbd>Ctrl</kbd>+<kbd>Z</kbd> назад, <kbd>Ctrl</kbd>+<kbd>Y</kbd> вперёд — единственные пути обратно.
+- **«Вернуться к исходному файлу»** сбрасывает сессию и перезагружает файл как открытый. Спрашивает сначала и само отменяется.
+- Изменение, добавляющее критичные проблемы или выбрасывающее почти всю геометрию, **отклоняется**; прошлое состояние остаётся, предлагается «Применить всё равно».
+- Каждое принятое состояние фоном пишется в снимок. Если Meshwright закрылся нечисто, следующий старт предложит **восстановить**. Снимки живут в `%LOCALAPPDATA%\Meshwright\sessions` и при чистом выходе удаляются.
 
-## Viewport detail
+## Детализация вьюпорта
 
-A model with millions of triangles takes a while to draw, so Meshwright shows a
-simplified version of it and tells you: *"Viewport showing 18% of this model"*. Drag
-the **Detail** slider in the viewport toolbar up for the full mesh, or down if you
-want the view to spin more freely.
+Модель на миллионы треугольников рисуется долго, поэтому Meshwright показывает упрощённую версию — и говорит: *«Вьюпорт показывает 18% этой модели»*. Слайдер **«Детали»** на панели вьюпорта — вверх до полной сетки, вниз — крутить свободнее.
 
-This is the picture only. The diagnostics, repair, reduce, retopology and every export
-always use every triangle in the model — the number in the Geometry panel is the real
-one. While the view is simplified the open-edge overlay is switched off, because it
-would be marking edges of the simplified copy rather than of your model.
+Это только картинка. Диагностика, ремонт, упрощение, ретопология и каждый экспорт всегда идут по всем треугольникам — число на панели «Геометрия» настоящее. Пока вид упрощён, оверлей открытых краёв выключен: он метил бы края упрощённой копии, а не вашей модели.
 
-## The cup
+## Чашка
 
-While Meshwright is busy — opening a file, repairing, reducing, exporting — a small
-cup strolls along the bottom of the window and leaves when the work is done. He is
-there so you can see at a glance that something is still happening.
+Пока Meshwright занят — открывает файл, чинит, упрощает, экспортирует, — по низу окна бредёт маленькая чашка и уходит, как работа сделана. По ней взглядом видно, что что-то ещё идёт.
 
-Click him and he stops to ask whether you would like to buy Vlad a coffee. Click the
-balloon to open the page, or click anywhere else to send him on his way.
+Кликните её — остановится и спросит, не хотите ли купить Владу кофе. Клик по облачку открывает страницу, клик мимо — отправляет её дальше.
 
-## Starting over
+## Начать заново
 
-**New** in the top bar (<kbd>Ctrl</kbd>+<kbd>N</kbd>) closes the model and empties the
-workspace — mesh, history, diagnostics and textures. <kbd>Delete</kbd> does the same, unless
-you have pieces ticked in **Separate pieces**, in which case it removes those instead.
-Either way you are asked to confirm before anything with unsaved changes is thrown away.
+**«Новое»** в верхней панели (<kbd>Ctrl</kbd>+<kbd>N</kbd>) закрывает модель и чистит рабочее место — сетку, историю, диагностику, текстуры. <kbd>Delete</kbd> — то же, если только на панели **«Отдельные куски»** не отмечены куски: тогда удалит их. В любом случае сначала спросит, прежде чем выбрасывать несохранённое.
 
-## Keyboard
+## Клавиатура
 
-Press <kbd>?</kbd> at any time for the full list. The ones worth learning:
-<kbd>Ctrl</kbd>+<kbd>O</kbd> open · <kbd>Ctrl</kbd>+<kbd>N</kbd> close the model ·
-<kbd>Ctrl</kbd>+<kbd>Z</kbd> undo · <kbd>Ctrl</kbd>+<kbd>R</kbd> repair ·
-<kbd>Ctrl</kbd>+<kbd>S</kbd> export · <kbd>W</kbd> wireframe · <kbd>F</kbd> fit ·
-<kbd>1</kbd>–<kbd>7</kbd> standard views.
+Полный список — по <kbd>?</kbd> в любой момент. Выучить стоит:
+<kbd>Ctrl</kbd>+<kbd>O</kbd> открыть · <kbd>Ctrl</kbd>+<kbd>N</kbd> закрыть модель ·
+<kbd>Ctrl</kbd>+<kbd>Z</kbd> назад · <kbd>Ctrl</kbd>+<kbd>R</kbd> ремонт ·
+<kbd>Ctrl</kbd>+<kbd>S</kbd> экспорт · <kbd>W</kbd> каркас · <kbd>F</kbd> вписать ·
+<kbd>1</kbd>–<kbd>7</kbd> стандартные виды.
+
+Оригинал на английском: [USER_GUIDE.en.md](USER_GUIDE.en.md).

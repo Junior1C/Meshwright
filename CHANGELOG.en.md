@@ -1,0 +1,655 @@
+# Changelog
+
+All notable changes to Meshwright. Format based on [Keep a Changelog](https://keepachangelog.com).
+
+## [Unreleased]
+
+### Added
+- **Rings for wax casting.** An image-to-3D service will produce a ring in under a minute, and the
+  result looks right in a render and is almost never right on a finger: the bore is an oval, its size
+  is whatever the generator felt like, the inside edge is cut square, and the band is thin where
+  metal will not fill. Generic repair — including the auto-repair those services now ship — closes
+  holes and fixes normals, and will hand back a watertight, manifold, perfectly unwearable oval.
+
+  Meshwright now measures a ring the way a jeweller would and corrects it. Load it, set the finger
+  size and the minimum wall, press **Fix this ring**: the mesh is repaired, then handed to Blender
+  for a true, correctly sized comfort-fit bore and edges taken off without losing the engraving, and
+  comes back as an ordinary undoable state. On a test ring built oval on purpose — bore
+  16.40–17.90 mm, ISO 51.5 — that is 2.4 s to a watertight ring at exactly the size asked for.
+
+  **Measuring happens here, and never guesses.** The finger axis is the principal axis carrying the
+  largest moment of inertia, which holds whatever angle the file was saved at. The bore is then read
+  by firing rays outward from it — reading vertex positions instead aliases badly, and a bore drawn
+  with 180 segments reports itself 4 mm out of round when it is nothing of the kind. A ring's size
+  is taken at its **narrowest** point, because that is where the finger meets it; averaging an oval
+  invents a size the ring does not have, and always a size too large.
+
+  **Correcting happens in Blender**, because two of the operations have no good answer in a triangle
+  mesh. Rounding a sharp edge by voxel filtering blurs away the 0.3 mm engraving that casting
+  guidelines ask for, and going fine enough to avoid that would take 1.4 billion voxels for one ring.
+  Blender's angle-limited bevel rounds the hard corners and leaves flat faces and shallow detail
+  alone — measured on a ring with 0.3 mm grooves, every groove was still 0.300 mm deep afterwards.
+  The ring is sent standing on +Z and centred, so the script works in known coordinates, and it comes
+  back where it was: measured movement, 0.000 mm.
+
+  What it will not do quietly: cutting a bore can only take metal away, so where the generator's bore
+  was already wider than the size asked for it stays oval — and the panel says so, with the smallest
+  size at which it does come out truly round. A model that is solid through the middle is refused
+  rather than handed an invented finger size. And when shrinkage compensation is set, the panel
+  reports the size as printed **and** the size once cast, separately, because the model on screen is
+  the wax and not the ring.
+
+  Every figure it judges against is published and sourced in `docs/PRD-RINGS.md`: 1.0 mm for a ring
+  band, 0.35 mm as the lost-wax floor, ISO 8653 for sizes.
+
+  The card is **collapsed by default** and remembers being opened. This is a small audience, and
+  nobody printing miniatures should have ring sizes in their way.
+
+- **Blender's location is now a setting.** A status line and **Find Blender…** in the jewellery
+  panel; the path is checked before it is stored, and a configured path beats `MESHWRIGHT_BLENDER`,
+  which beats searching. Without Blender the fix is disabled with a reason that says what to do, and
+  measuring still works.
+
+- `docs/PRD-RINGS.md` — the research behind all of this: what a wearable ring needs, what the
+  casting houses publish, what already exists, and what was measured rather than assumed.
+
+
+## [1.6.0] - 2026-09-22
+
+### Added
+- **Right-click a piece and work on that piece.** A model made of separate pieces usually needs
+  different things done to different parts of it — the figure kept and the base thinned, two halves
+  fused into one solid, an arm moved clear of the body before it is printed — and every one of those
+  used to go through the panel on the right, which meant finding the piece in a list instead of
+  pointing at it.
+
+  Right-clicking now opens a menu built around what is under the cursor: **Move**, **Reduce detail**
+  (keep 50%, 25% or 10%), **Merge into one solid**, **Keep only these**, **Remove**, and the
+  selection and view commands. The menu names the pieces it will act on at the top, so the scope of
+  every entry is stated rather than assumed, and right-clicking a piece that is not selected selects
+  it first — acting on something other than the thing you just pointed at is what nobody expects.
+  Shift-right-click adds to the selection, the way shift-click already does.
+
+- **Alt+drag rubber-bands a box over the viewport** and selects every piece inside it; holding Shift
+  as well adds them to what is already chosen rather than replacing it. Picking pieces one at a time
+  is fine for three and hopeless for the three hundred a scan or a generated model routinely splits
+  into.
+
+  A piece counts as caught the moment any one of its points lands in the box — the "touch" rule a
+  modelling program uses — because a band that demanded a whole piece be enclosed would refuse
+  everything on a zoomed-in model, which is when one is most wanted. The search stops at the first
+  point found inside each piece, so the usual case costs almost nothing.
+
+  Alt is what keeps the gesture out of the way: a plain drag still orbits and a plain click still
+  picks, both of which are used far more often. Releasing over nothing says so rather than silently
+  clearing the selection, a band only a few pixels across is treated as a slipped click, and Escape
+  abandons one mid-drag.
+
+- **A drag handle for moving pieces.** **Move** puts a translate gizmo on the selection; dragging
+  shifts those pieces in the viewport and releasing commits the move. The viewport holds one mesh
+  rather than one object per piece, so this shifts the vertices that piece's faces use — safe
+  precisely because a piece is a connected component and shares no vertex with any other. The
+  vertex list is worked out once when the drag begins rather than per frame, which on a
+  half-million-face model is the difference between dragging and watching a slideshow. Escape
+  cancels and puts the model back as it was.
+
+- **Merging is a boolean union, not a concatenation.** Two halves that overlap come out as a single
+  watertight body a slicer can fill. Pieces that do not touch cannot be fused by any amount of
+  arithmetic, and the result says how many separate bodies are left rather than implying a join that
+  is not there.
+
+- **Reducing one piece leaves the others at full detail**, which is what makes it useful for a base
+  or a support block under a figure that must keep every triangle it has.
+
+  A translation changes no topology, so a moved piece keeps the texture coordinates it had instead
+  of having them re-projected onto geometry that has just been dragged somewhere else.
+
+
+### Added
+- **A file with more than one object in it now asks which ones you want.** Meshwright has always
+  opened a model by welding every object in the file into one mesh — right for a figure saved on its
+  own, wrong for anything that was set up for rendering. A Blender project arrives with its studio
+  floor and its reflection cards fused to the model, and no amount of work afterwards can separate
+  them again.
+
+  Opening such a file now lists what is in it first — name, triangle count and size, grouped by the
+  collections the author made — and only what you keep is welded. In one real project that is 108
+  objects in six groups, and the studio goes away in a single click.
+
+  Listing is deliberately cheap, which is what makes asking practical: a Blender project is read in
+  under two seconds where exporting it takes minutes, and a glTF is read from its own header, so a
+  426 MB file is listed without touching the 426 MB.
+
+  **Nothing is guessed at.** Objects the file itself marks as not-for-render start unticked — a rig's
+  controller widgets say so in the file — and everything else starts ticked. That restraint is the
+  point: the project that prompted this names its 200 x 200 ground plane "Studio ground - excluded
+  from model validation" and carries no flag at all to say so, while a genuine floor tile in a
+  printed diorama would look identical to any rule that tried to be clever. The grouping does the
+  work instead.
+
+  A file that holds one object is opened as before, with no question asked. A choice that cannot be
+  honoured now fails and says so, rather than falling through to a loader that cannot filter and
+  quietly handing back the whole scene — which would have been the one failure nobody would notice.
+
+### Changed
+- **Blender projects no longer import what Blender itself would not render.** The export now passes
+  `use_visible` and `use_renderable`, so a rig's controller widgets and anything switched off in the
+  outliner stay behind. This is the half of the problem the file answers on its own; the other half
+  is the picker above.
+
+
+## [1.5.0] - 2026-09-21
+
+### Added
+- Import Blender `.blend` projects through an installed Blender, detected automatically or configured with `MESHWRIGHT_BLENDER`. Imports the active scene through a temporary GLB with modifiers, transforms, UVs, and compatible materials; leaves the source project unchanged.
+- Select disconnected pieces directly in the viewport. Click selects one piece, Shift-click adds or removes it, and clicking empty space clears the selection. Red highlights and the Separate pieces list stay synchronized with the existing removal controls.
+- Tests covering Blender round-trip import, import failures, viewport ray picking, selection toggling, and gesture handling.
+
+### Fixed
+- Preserve piece highlights when changing viewport detail.
+- Synchronize application and npm package versions.
+
+## [1.4.0] - 2026-09-21
+
+### Added
+- **Meshwright checks a model against the printer it is going to.** Pick your machine from the
+  panel — 216 of them, resin and filament, from Elegoo, Anycubic, Phrozen, Creality, Bambu Lab,
+  Prusa and two dozen other makers — and Meshwright measures whether the detail in the model is
+  something that machine can physically make. What is too fine is listed, counted, and can be
+  clicked to light up on the model. Nozzle, pixel pitch and layer height can all be overridden,
+  because a nozzle is a consumable and the owner knows what is fitted.
+
+  It **reports and points; it never changes the model.** What to do about a detail that is too fine
+  has more than one right answer — print it bigger, print it on the other machine, thicken it, or
+  accept the loss — and that is the owner's call. Where detail would be lost, it works out the size
+  at which nothing would be, and says so in millimetres as well as in multiples ("at 8× this size,
+  about 7.9 mm tall, every detail would survive"), which matters because most generated models
+  arrive saved at about a millimetre tall.
+
+  The two numbers that decide are not the same on the two kinds of machine. A resin printer is
+  limited by its screen — an Elegoo Mars 4 Ultra is 153.4 mm across 8520 pixels, so one pixel is
+  18 µm and about two of them is the finest thing it can cure. A filament printer is limited by its
+  nozzle, which cannot lay a line narrower than itself. The same model can therefore be perfect on
+  one and hopeless on the other, and now says which.
+
+  **Nothing is asserted unless two independent measurements agree.** Each layer is sliced and drawn
+  at the printer's own resolution, and morphological opening removes exactly what the machine cannot
+  lay down — that measurement needs no surface normals and no watertight mesh, so it decides.
+  Separately, a ray is fired into the surface at every face to measure the wall there; with Intel
+  Embree behind it that is 336,780 exact measurements in 0.4 s, and on a sphere of known thickness
+  10.000 mm it returns 10.000. But it is only correct while the surface faces the right way, and on
+  one real 694,000-face model with inconsistent winding it read a uniform 0.24 mm wall through a
+  solid figure. So it is never allowed to decide anything alone: on a mesh whose winding or
+  watertightness is in doubt its findings are withheld and the panel says why, and where the two
+  measurements disagree that disagreement is itself reported. A check that quietly guesses is worse
+  than none — it sends someone to a six-hour print.
+
+  The table is embedded, so it works on a PC with no slicer installed; where one *is* installed its
+  machines are offered too, read from its own configuration, because those are the printers that
+  person actually owns. Every figure in the table is a published specification, and any of them can
+  be typed over for a machine that is not listed.
+
+- **Meshwright browses for its own models, and shows you what they are.** **Open model** no longer
+  hands you the Windows dialog, where every 3D file is the same blank icon and the only clue is the
+  filename. It opens Meshwright's own browser: highlight a file and it draws the model, and reports
+  the format, size, triangle count, dimensions, whether it carries textures, and roughly how long it
+  will take to open. Pictures also fill in beside the rows, so a folder can be read at a glance, and
+  the files you opened before are one click away under **Recent**.
+
+  Windows cannot do this itself. It draws 3D thumbnails through Microsoft's 3D Viewer, which is not
+  part of Windows 11 any more; on a normal machine nothing is registered to preview STL, GLB, glTF,
+  PLY, 3MF or OFF, which is why the standard Open box shows a row of identical icons.
+
+  Nothing is loaded to make a picture. Each file is sampled — at most a few hundred thousand
+  triangles read straight out of it — and the sample is splatted into a small depth-and-normal image
+  and lit, so the cost follows the sample rather than the model: a 249 MB, five-million-face STL is
+  drawn in about 0.7 s and a 67 MB GLB in about 0.2 s, against the 7.7 s that actually opening that
+  GLB takes. Pictures are kept in `%LOCALAPPDATA%\Meshwright\previews`, so a folder is instant the
+  second time, and the file's own thumbnail is used when it has one, as slicer-written 3MFs do.
+
+  Numbers are the file's own, or they are marked: an STL's dimensions come from every triangle in
+  it, a glTF's from what it declares, and where a file is too large to measure exactly the size is
+  shown with a `≈`. Formats that cannot be sampled cheaply — FBX above 64 MB, COLLADA, 3DS, a very
+  large 3MF — report their facts and say the picture comes once the model is open.
+
+  It is meant to survive what a real disk holds. A damaged file is explained rather than drawn, and
+  a file that claims more data than it contains is refused instead of read: nothing is
+  memory-mapped, because walking off the end of a mapped file ends the process rather than raising.
+  A folder Windows will not open says so, and is not reported as deleted; a file kept in the cloud
+  by OneDrive is left alone rather than quietly downloaded; drives are read from the list Windows
+  already holds, so a disconnected network drive cannot stall the dialog. Drawing pictures in the
+  background always gives way to whatever you are waiting for, so navigation stays immediate.
+
+  The Windows dialog is still one click away, drag-and-drop is unchanged, and
+  <kbd>Ctrl</kbd>+<kbd>O</kbd> opens the new browser.
+- **A real Windows program and installer.** `packaging\build.ps1` freezes Meshwright into
+  `Meshwright.exe` (PyInstaller) and wraps it in `Meshwright-Setup-<version>.exe` (Inno Setup), so a
+  PC needs no Python, no `install.bat` and no terminal. It installs per user with no administrator
+  prompt, adds Start-menu and desktop shortcuts and a proper uninstaller, and installs Microsoft's
+  WebView2 runtime only if it is missing. See `packaging/README.md`.
+
+  The build proves the result before it ships one. The frozen program carries a `--selftest` that
+  runs 20 checks — the window stack, both helper processes, every mesh engine, texture processing,
+  the file browser's previews, the printer check, three export formats and the MCP server — and `build.ps1` runs it
+  with nothing but Windows on `PATH`, failing the build if anything is wrong. Each step asserts *which* engine did the work,
+  because a packaging failure is quiet: a helper that cannot start does not raise, retopology just
+  uses another engine and returns a perfectly good-looking mesh.
+
+  Two editions: **full**, and **lite**, which leaves out PyMeshLab and pymeshfix (both GPL-3) for
+  anyone who would rather not distribute those. A `THIRD_PARTY_NOTICES.txt` is generated from what
+  was actually bundled, with each licence's text, because MIT and BSD licences require it to travel
+  with a binary.
+- `Meshwright.exe --mcp` runs the MCP server from the installed program, and `--version` and
+  `--selftest` are available from the command line.
+- **A missing WebView2 runtime is now explained.** pywebview does not fail when the runtime is
+  absent: it silently falls back to Internet Explorer's engine, which cannot run the interface, and
+  the person gets a broken blank window and no message. The program now asks pywebview which
+  renderer it chose before opening anything and, if it is the fallback, says what is missing and
+  offers to open the download page. A failed start-up is likewise written to
+  `%LOCALAPPDATA%\Meshwright\startup-error.txt` and shown in a dialog rather than vanishing, since
+  a windowed program has no console to print to.
+- **Reliable model loading progress and global visual feedback.** Selecting or dropping a file now
+  immediately activates loading feedback on the client side, rather than waiting for an engine roundtrip.
+  A glowing amber-to-cyan progress bar pinned to the top of the 3D viewport animates in synchronization
+  with background jobs, accompanied by an animated loading spinner and active status prompt in the
+  empty workspace. The Python-to-WebView bridge dispatches UI events through a dedicated non-blocking
+  background queue, eliminating WebView2 semaphore deadlocks and dropped events.
+- **Continuous 2D UV island boundary contours.** The 2D UV Island Unfold viewer now extracts true
+  closed 2D boundary loops directly in UV space, rendering crisp continuous outlines against active
+  PBR texture channels rather than disjoint floating specks.
+- **A cup who waits with you.** Opening a model or writing one out sends a hand-drawn cup strolling
+  along the bottom of the window; he leaves when the work is done. Repairs, reductions, unwraps and
+  previews keep their progress toast and nothing more — he is on screen for the waits that are about
+  the file itself, because a character who turns out for everything is scenery rather than a signal.
+  Click him and he stops, under a speech balloon, to ask whether you would like to buy Vlad a coffee.
+
+  He is animated from an eight-frame walk sheet cut by `scripts/build_walk_frames.py`, which lifts
+  the background without hollowing out a character drawn in white, checks the cycle order against
+  the drawing, and lines every pose up on the ground so he walks rather than skates. The order is
+  read from how the body rises and falls — a walk bounces once per step, twice over eight drawings —
+  because foot positions do not survive measurement: the lifted foot is clear of the ground, so a
+  band across the bottom of a pose finds one foot rather than two.
+
+  He is drawn in colour on a transparent sheet, walks at twelve frames a second, and is timed by
+  his stride rather than by the clock — `PX_PER_CYCLE` sets how much ground two steps cover and
+  every journey's duration is derived from the distance, so he does not skate on a wide window. He
+  keeps walking for as long as the work takes rather than stopping off-screen after one crossing,
+  and a job that starts while he is walking out turns him round from where he stands instead of
+  snapping him back to the far edge. The speech balloon closes on a click elsewhere, on `Esc`, or
+  by itself after seven seconds, and he carries on walking when it does.
+
+  The hop on each step is in the drawings, not the stylesheet: the cutter aligns every pose on the
+  feet, which keeps the 35px of rise and fall the artist drew while planting him on one ground
+  line. A CSS bob on top runs at its own phase, and two bounces that disagree read as a judder — so
+  the layer that used to bob now only leans.
+
+### Changed
+- The version number now lives in one file, `engine/version.py`. The About panel, the MCP server
+  (which had been reporting `1.0.0`) and the installer all read it.
+
+### Fixed
+- **Models from glTF, GLB and FBX arrived lying on their back.** Meshwright works in Z-up, as every
+  slicer and build plate does, but glTF and GLB *mandate* Y-up in their specification and FBX writes
+  its own answer into the file — and nothing was reading either. A figure generated in ComfyUI or
+  Meshy therefore came in a quarter turn onto its back and stayed that way: its height was reported
+  as its depth, "Unusual scale" measured the wrong side, and "Rest on build plate" stood it on its
+  shoulder. It is now turned upright on the way in, and turned back on the way out, so a GLB written
+  by Meshwright is Y-up as the format requires and opening it again returns the same model rather
+  than one rotated a further quarter turn.
+
+  Only files that *say* which way is up are touched: glTF and GLB always, FBX according to its own
+  header, as read by ufbx. OBJ, PLY, OFF and 3DS record nothing about orientation, and guessing from
+  the shape of a model would stand some up and lay others down with no way to tell those cases
+  apart, so they are left exactly as they are — as are STL and 3MF, which are printing formats and
+  Z-up already. The file browser's previews follow the same rule from the same place
+  (`engine/axes.py`), so a picture is a promise about how the model will actually open.
+- **Decimate and Uniform failed with "Retopology made no change" when MeshLab was missing.** PyMeshLab
+  is optional — the installer carries on without it if it will not install, and the lite edition leaves
+  it out — but nothing told the interface, so choosing either method produced a message that named
+  nothing and suggested nothing. They now say that MeshLab is needed, which copy of Meshwright lacks
+  it, and to use Smart retopology instead. The README had claimed absent engines are "simply not
+  offered"; that was not true and now reads as it is.
+- **The last-resort repair moved and rescaled the model.** When every other engine has failed, repair
+  rebuilds the surface from a solid voxel grid ("Force watertight", on by default). trimesh returns
+  that surface in *voxel index space*, and the result was used as it stood: a 40 mm sphere came back
+  151 units across and centred on (75, 75, 75). It went unnoticed because the only check was that the
+  result was watertight, tried on a one-unit mesh at the origin where the two spaces almost coincide,
+  and because MeshFix nearly always got there first. The result is now mapped back through the grid's
+  own transform, and one that still does not line up with the model is refused, so a repair keeps the
+  mesh it had rather than return one in the wrong place. Found while measuring what the edition
+  without MeshFix costs, where this stage is the main path.
+- **Textures scrambled across half the model, and a load that could run out of memory.**
+  Both showed up on the same AI-generated GLB — 694,078 faces in 366 loose shells, with a UV atlas
+  made of 13,314 islands — and they were unrelated.
+
+  Separating a model into shells renumbers its faces, and the UV channel is meant to be permuted to
+  match. It never was: the check for "the faces did not move" was tested first, and it only compares
+  *how many* faces there are, which separation does not change. So the permutation branch below it
+  was unreachable and every shell was painted with some other shell's artwork. 50.8% of faces on the
+  reported model, which is why half of it looked shattered. Single-shell models were unaffected,
+  which is why it went unnoticed.
+
+  The viewport's simplified copy had its own version of the same fault. Texture coordinates rode
+  through the decimation as one UV per welded vertex, chosen arbitrarily from the corners meeting
+  there — but a vertex on a UV seam has several, and on an island-heavy atlas that is 45% of them.
+  The display copy now carries UVs per face corner, transferred after decimation and split at seams
+  exactly as the full-detail path already did. Wrong faces went from 90.8% to 1.8%, and it costs
+  about half a second: the transfer picks each face's island by true surface distance over a short
+  candidate list, rather than by nearest triangle centroid.
+
+  Separately, the loader parks the model's images on `mesh.metadata` for the texture engine to pick
+  up, and left them there. `mesh.copy()` and `mesh.submesh()` deep-copy that dictionary, so a model
+  with 4096px maps cloned them once per shell and died with a `MemoryError` before drawing anything.
+  Ownership now transfers properly and the images are dropped from the metadata once bound.
+
+- **Loading progress bar disappeared before the 3D model was visible on screen.** Python previously
+  emitted `state: 'done'` before returning the model data across the desktop IPC bridge. The frontend
+  dismissed the toast and progress bar immediately, leaving several seconds of heavy base64 decoding
+  and WebGL geometry buffer upload with zero visual indication that work was continuing. The progress bar
+  is now held through the Three.js rendering stage and dismisses only when the model is rendered.
+- **Unwrapping UVs removed loaded textures from the 3D model.** Generating or adjusting a UV unwrap
+  previously cleared all active materials (`self.materials.clear()`), wiping out albedo, normal and
+  roughness maps and resetting the viewport to plain plastic. Textures are now preserved across unwraps
+  and remain mapped onto the surface and displayed in the 2D unfold view.
+- **An FBX with its texture baked inside loaded as a grey model, or crashed the program.** Three
+  faults in a row on the same file, a 228 MB Hi3D export carrying an 8192×8192 JPEG:
+
+  The FBX parser only ever read geometry and UVs, so the material — and the artwork inside it — was
+  never looked at. Nothing downstream could recover it either: trimesh cannot open FBX at all, and
+  the companion-file scan looks for images *beside* the model, which a file that embeds its own has
+  none of. Textures are now read from the material, through the normalised view that covers Phong,
+  Lambert, Arnold, Maya and Blender-style materials alike, embedded or referenced by name.
+
+  Decoding them then took the whole program down without a message. Allocating a large image while
+  the FBX scene is still open corrupts its teardown, and the process dies the moment it is released.
+  The bytes are now copied out and the scene closed before anything is decoded — which also cut peak
+  memory on that model from 2.4 GB to 0.95 GB.
+
+  Finally, a model in more than one piece never showed its texture. The piece-colour overlay paints
+  straight onto the mesh, and the viewport will not fight it — so with 49 pieces the map was loaded,
+  the UVs were there, the button said PBR, and the model still drew flat grey. A textured model now
+  opens showing its texture, and choosing any shading mode takes the overlay down instead of lighting
+  the button up and changing nothing. **Highlight** puts the piece colours back.
+
+- **A reduced model showed a wrong colour on a handful of triangles near its seams.** Carrying UVs
+  through an edit rebuilds some corners from a neighbouring triangle, which extends that triangle's
+  plane and can land a hair past the edge of the texture sheet — measured 0.0077 outside on 108 of
+  119,994 corners taking a 2.96M-face model down to 40,000. The viewer samples with repeat wrapping,
+  so a hair past the edge fetches a colour from the opposite side of the atlas, on about a hundred
+  faces. The transfer now holds its answer inside the range the source itself used, which leaves a
+  deliberately tiled layout untouched.
+
+- **Loading a model could fail outright with `IndexError: boolean index did not match indexed
+  array`.** The two passes that drop degenerate and duplicate faces built both of their masks up
+  front. The first pass shortens the face array, so the second mask was then too long by exactly
+  the number of faces the first had removed, and any model with both kinds of bad face refused to
+  open. Each mask is now measured against the faces that are actually there when it is applied.
+
+## [1.3.0] — 2026-09-04
+
+### Fixed
+- **Textured models were diagnosed as broken, and repair then destroyed them.** UV coordinates were
+  stored per vertex, which forces a vertex to be duplicated at every texture seam. That duplication
+  breaks the edge joining two triangles, so the analyser read a clean watertight model as a pile of
+  disconnected shells with hundreds of open holes — and repair closed holes that were never there.
+  A clean textured sphere GLB loaded as *Repair required, score 59, 9 shells*; decimating it to 25%
+  produced 201 shells; repair then turned 1,279 faces into 168,811. Meshwright now keeps texture
+  coordinates in a per-face-corner array beside the mesh, so the geometry stays welded and analysis,
+  repair and reduction all see the real topology. The same model now loads and survives the whole
+  pipeline as *Print ready, score 100, watertight, 0 shells*.
+- **Reducing or repairing a textured model slid the texture across the surface.** UVs were carried
+  over by matching each new triangle to the source triangle with the nearest *centroid*, then
+  projecting all three of its corners onto that one triangle and clamping anything that fell
+  outside — which snapped those corners onto the triangle's edge. Every corner is now projected to
+  its true closest point on the source surface, and corners that land across a UV seam are
+  re-evaluated inside the chart their own face belongs to. Measured against a known-exact UV map,
+  worst-case drift after decimating to 2% of the original face count fell from 394 texels to 0.46
+  on a 2048 px map; after repair, from 775 to 24.
+- **Decimation left the mesh as an unwelded triangle soup.** The old UV transfer computed every face
+  corner independently and could weld almost none of them back together, so a 1,280-face result came
+  back with 3,785 vertices instead of 642 — losing smooth shading, inflating exports and breaking
+  watertightness. Decimation now returns a properly welded mesh.
+- **Unwrapping a print-ready model reported it as broken.** Unwrap split vertices at every seam, so a
+  model scoring 100 dropped to 59 with "7 open holes" without a single triangle changing. Unwrapping
+  no longer touches the geometry.
+- **Unwrapping crashed the whole application on ordinary watertight models.** xatlas has a bug on
+  closed surfaces — where every edge has an opposite, which is exactly what a print-ready model is —
+  that leaves its boundary data unset and its convex-hull pass reading uninitialised memory
+  ([jpcy/xatlas#146](https://github.com/jpcy/xatlas/issues/146)). An 81,920-face sphere took the
+  window down with an access violation and no message. Meshwright now splits every model into open
+  patches before unwrapping, so xatlas is never given the input that breaks it, and the patches are
+  packed into one atlas so the result is still a single texture layout. The same sphere now unwraps
+  in about a second.
+- **Unwrapping large models silently produced overlapping UVs.** Above roughly 40,000 faces xatlas
+  stops segmenting and returns one chart covering the whole surface, with no error — measured UV
+  coverage of 1.02 to 1.57 in a unit square, where anything above 1.0 means charts sitting on top of
+  each other and a texture that smears. Every layout is now measured before it is accepted, and the
+  patches are halved and retried if it overlaps or if the texture density came out uneven.
+- **Unwrapping was extremely slow on dense models.** A 159,048-face surface took 121 seconds; it now
+  takes 3.9, with *lower* distortion. A 327,680-face model went from crashing to 2.4 seconds.
+- **Re-unwrapping a textured model silently scrambled it.** A new UV layout invalidates any texture
+  painted for the old one. Unwrap now asks first, and clears maps that no longer apply.
+- **A stray image file beat the texture the model actually declared.** Companion-file scanning ran
+  before the model's own material, so a leftover `*_diffuse.png` in the folder overrode the embedded
+  base colour. The material a file declares is now the authority; the folder scan fills the gaps.
+- **`metallicRoughness` texture files were ignored.** The standard glTF export name — what Sketchfab,
+  Blender and most exporters write — matched no pattern, so metallic and roughness were silently
+  lost, and with no separate base-colour file the packed map could be loaded as albedo. It is now
+  recognised and unpacked, alongside `metalRough`, `RMA` and `occlusionRoughnessMetallic`.
+- **`dilation_pixels=` was ignored by the seam dilator.** Every caller silently got the 16 px default,
+  including the ComfyUI node and the project's own test.
+- **Every successful UV unwrap reported an error.** A button reference was scoped to the wrong
+  function, so the handler threw before its success message.
+- **The UV island count was the mesh body count.** A sphere unwrapped into 7 charts reported "1
+  island". The real chart count now comes from xatlas, along with the atlas size.
+- **A recovered crash session inherited the previous model's textures.** `recover()` did not clear the
+  material set the way `load()` does.
+- **Texture failures were swallowed silently** by a bare `except: pass` around the texture state.
+- Exporting a texture pack wrote the same UV guide image twice, under two names.
+
+- **Every mesh operation re-sent the whole texture set.** A repair, a reduce, an undo or even a
+  rotate re-encoded all six maps to base64 and shipped them to the interface: 375 ms and 12.8 MB
+  each time, for data that had not changed. Results now carry a version number and a list of
+  channels; the maps are fetched only when that version moves. Ten operations in a row went from
+  about 3.7 seconds of encoding to 12 milliseconds.
+- **The MCP server returned megabytes of texture data to assistants.** `_strip()` dropped the binary
+  mesh preview but not the textures, so a single `repair` on a textured model returned 9.27 MB —
+  enough to swamp a context window. Tool results are now under a kilobyte.
+- **Texture seams could show dark fringes.** The gutters between UV islands were left empty, so GPU
+  filtering and mipmapping blended that emptiness into the edge of every island. Exported texture
+  packs, baked GLBs and textured OBJ/glTF exports now have their gutters padded. The maps held in
+  memory are untouched — padding is applied to copies on the way out.
+- **Generated normal maps had a false ridge along all four borders.** The gradient pass assumed the
+  source image tiled, so it read the opposite edge as if it were adjacent. It no longer does unless
+  you say the image tiles.
+
+- **Loading a dense FBX took minutes.** A 225 MB, 5-million-triangle model effectively hung: it
+  loaded in about 27 seconds, of which ten minutes and counting were spent re-projecting texture
+  coordinates that were already correct. Separating a multi-body model renumbers its faces, and the
+  commit step responded by projecting twenty million points onto a five-million-face surface to
+  recover a mapping it could have simply permuted. It now carries the permutation through and
+  reindexes, which is exact and instant.
+- **Row-wise de-duplication was the next bottleneck.** Deciding which edges are open, which faces
+  are duplicates and which corners can be welded all reduce to "which rows of this array are equal",
+  and `numpy.unique(axis=0)` answers that by sorting each row as a block of bytes. Packing each row
+  into a single 64-bit key instead is exact and several times quicker: building the viewport vertex
+  buffer went from 5.6 s to 1.8 s, and the diagnostics pass from 10.1 s to 7 s on the same model.
+  Where the values will not fit in a key, the original path still runs.
+- **The loader paid for a summary the application discards.** `load_model()` measured
+  watertightness, volume and area on every load — three seconds on a dense model — and the desktop
+  app threw the result away before running the full diagnostics. It is now optional.
+- The FBX index buffers are read with `np.fromiter`, and duplicate faces found with packed keys
+  rather than trimesh's row hash, together about a second and a half on a five-million-face model.
+- Hole counting no longer re-derives the open edges the diagnostics pass had already found.
+- **A failed file dialog was reported as if a file had been chosen.** The dialog methods return a
+  path, and the interface treats the return value as one. Wrapping them in the error decorator made
+  them answer with `{success: false, ...}` on failure — a truthy object that was then handed to the
+  loader as a path, so a dialog that could not open surfaced as *"path.split is not a function"*.
+  They now return an empty string in every failure case and log the real reason.
+- **Several viewport controls stopped repainting.** Moving to on-demand rendering saved the CPU an
+  idle 60 fps, but six methods that change the scene never asked for a frame: the light sliders, the
+  diagnostic locator, the piece highlighting, the displacement slider, the environment and the
+  preset views all appeared dead until the camera happened to move. Every scene-mutating method now
+  invalidates, and a test enumerates them so the next one cannot be forgotten.
+- **FBX polygons are triangulated with array arithmetic** rather than a Python loop over every
+  corner, and are covered by tests against a reference implementation for triangles, quads, n-gons
+  and meshes that mix them.
+- The UV worker no longer asks xatlas to pack an empty set, which wrote a complaint to a native
+  stderr the parent could not catch.
+
+- **Textures from Meshy and Hi3D models loaded flat.** Those generators embed a 2x2 placeholder in
+  the FBX material and ship the real 2048px maps as files beside it. Treating the material as
+  authoritative — correct in general — meant the placeholder won, so a fully textured model appeared
+  untextured. Placeholders are now ignored in favour of the real artwork. On a Meshy export that is
+  the difference between one 2x2 image and four 2048px maps.
+- **Smart retopology could take ten minutes and then close the application.** QuadriFlow can abort
+  inside Eigen on a mesh it dislikes, which in-process ends Meshwright mid-operation. It now runs in
+  a child process with a two-minute budget per piece; a crash or a stall falls through to uniform
+  remeshing, and the log says which engine did the work.
+- **Preparing a dense piece for smart retopology took 73 seconds.** Decimating five million faces to
+  two hundred thousand went straight to MeshLab's topology-preserving collapse. Doing it in two
+  steps — fast-simplification for the bulk, MeshFix to sew the surface closed — takes 27 seconds end
+  to end instead of 82, and the finished retopology deviated 4.95% from the original rather than
+  9.68%. MeshLab still runs when that chain cannot produce a manifold.
+- **The 2D UV view was unreadable on a dense model.** It drew one triangle in every few hundred,
+  which is a field of specks rather than a wireframe. It now draws the island outlines — the seams
+  and open edges that define the layout — and says that is what it is doing.
+- **The diagnostics crashed on a model with duplicate faces.** A refactor kept the totals and dropped
+  the masks the issue locations are built from, so clicking "Duplicate faces" raised a NameError.
+
+### Added
+- **Viewport detail.** A model too dense to draw quickly is shown simplified, with a slider in the
+  viewport toolbar to raise it to the full mesh and a message saying what is on screen. It is the
+  picture only: diagnostics, repair, reduce, retopology and export always use every triangle. A
+  five-million-triangle model's viewport payload drops from 148 MB to 27 MB.
+- **Image tiles seamlessly** option for PBR generation: blends the source edges and wraps the
+  surface gradients, for repeating materials.
+- **Displace** slider and a **Height** viewport channel, so the generated height map can be seen and
+  used instead of only exported.
+- Unwrapping now reports what it actually produced — islands, seam edges, atlas size and whether the
+  texture density came out even — instead of a chart count that was really the mesh's body count.
+- **New** button in the top bar (<kbd>Ctrl</kbd>+<kbd>N</kbd>) and <kbd>Delete</kbd> both close the
+  model and empty the workspace — mesh, undo history, autosave snapshot and textures — after a
+  confirmation. <kbd>Delete</kbd> still removes ticked pieces when the Separate pieces panel has a
+  selection.
+- OBJ, GLB and glTF exports now carry the model's UV coordinates and PBR maps. STL, PLY, OFF and 3MF
+  cannot store them and are unchanged.
+- `rtree` is now a required package. It bundles libspatialindex, installs as a pure wheel on every
+  supported Python, and provides the AABB queries behind the exact UV transfer. Without it the
+  transfer falls back to a slower KD-tree candidate search rather than failing.
+
+## [1.2.0] — 2026-08-26
+
+### Fixed
+- **The installer said Python was missing when it was not — and stopped when it really was.**
+  Windows ships a placeholder `python.exe` (App Execution Alias) that prints *"Python was not
+  found; run without arguments to install from the Microsoft Store"* and exits with an error.
+  `install.ps1` ran `python --version` inside a `try/catch`, which never sees a native exit code,
+  so it printed `[OK] Detected`, kept going, and failed one step later with
+  `[ERROR] Could not create the virtual environment.` The installer now *probes* candidates by
+  running them — the py launcher, every `python`/`python3` on `PATH`, the registry entries written
+  by the python.org installer, and the usual install folders including conda and uv — keeps only
+  real 64-bit interpreters that have `venv` and `ensurepip`, prefers the tested 3.10–3.13 series,
+  and when nothing is usable explains how to install Python and how to switch the placeholder off.
+- **One missing wheel aborted the whole installation.** `pip install -r requirements.txt` is
+  all-or-nothing, and several dependencies are compiled extensions with no build for the newest
+  Python for months after its release (`ufbx` has none for 3.13/3.14 and falls back to a source
+  build that needs Visual C++). Required packages now live in `requirements.txt` — all of them
+  pure-wheel installs — and the mesh engines moved to `requirements-optional.txt`, which the
+  installer installs **one at a time**, keeping going and reporting what it skipped.
+- **Exported models could slice as a thin, hollow shell.** An open surface has no inside, so a
+  slicer prints it as a single-wall shell with no infill. Export now measures the result and warns
+  on screen when the file is not a closed solid, when it encloses no volume, or when its walls
+  average under 1.2 mm; inside-out meshes are turned the right way out on the way to the file.
+
+### Added
+- **Load demo model.** Meshwright ships no 3D models and several people expected one to come with
+  it. The empty viewport now says so and offers a built-in test object, built in memory: a sphere
+  with a hole, a patch of flipped faces and a loose second piece — Repair takes it to watertight.
+- `install.bat -Check` reports every Python on the machine and every engine in the environment
+  without changing anything, and every run writes `install-log.txt` for support.
+- `install.bat -Recreate`, `-NoOptional` and `-Python <path>`, plus `scripts/check_install.py`,
+  which prints exactly which engines a copy has.
+- The installer refuses to run from inside a downloaded ZIP or a folder it cannot write to, and
+  explains what to do instead; `start.bat` says to run `install.bat` first instead of falling back
+  to a system Python that may not exist.
+
+### Changed
+- Export offers STL, OBJ, PLY, OFF, GLB, glTF and 3MF, and names files
+  `<original>-GS-<timestamp>-fixed.<ext>`.
+- `numpy` upper bound raised to `<2.6`.
+
+## [1.1.2] — 2026-08-21
+
+### Fixed
+- **The installer could break other Python projects.** `requirements.txt` used unbounded version
+  ranges, so `pip install -r requirements.txt` on a shared interpreter upgraded numpy to the latest
+  release and broke unrelated packages that pin it (numba, pyarrow and friends). Every dependency
+  now has an upper bound (`numpy>=1.26,<2.4`), and the installer creates an isolated `.venv` inside
+  the project folder by default. `start.bat`, `start.ps1` and the new `run-mcp.bat` use it
+  automatically; `install.ps1 -Global` opts back into a system-wide install.
+
+### Added
+- `requirements-dev.txt` for the test and lint tooling.
+- `run-mcp.bat` to start the MCP server from the project environment.
+
+## [1.1.1] — 2026-08-21
+
+### Fixed
+- **Sliver repair tore the mesh.** Edge collapses and flips were applied without checking whether
+  they were topologically valid, so fixing slivers on a closed model could open holes and create
+  non-manifold edges — which the safety guard then (correctly) rejected, making the button look
+  broken. Collapses now require the **link condition** and flips require that the replacement edge
+  does not already exist; a pass that would still worsen the topology is discarded. On a
+  1,994,490-face miniature: 186 slivers → 3, mesh stays watertight, and the 3 it refuses to touch
+  are reported instead of silently forced.
+- Shell colours were washed out by the key light on large models; the palette is now deeper and the
+  material less reflective.
+
+### Added
+- **Progress notifications.** Long operations report the face count and an estimated duration before
+  starting, show a live elapsed timer and progress bar in the bottom-right of the workspace, and
+  report the real elapsed time when they finish. Toasts can be dismissed or left to fade.
+- Result toasts for repair, sliver fixing and reduction, including surface deviation, and a toast
+  when a change is rejected by the safety guard.
+
+## [1.1.0] — 2026-08-21
+
+### Added
+- **Smart retopology** — QuadriFlow (BSD-3) rebuilds a model as clean, curvature-aligned quads;
+  three reduction engines (smart retopo / decimate / uniform) with an absolute face target,
+  low-poly presets and measured surface deviation in millimetres.
+- **MCP server** (`mcp_server.py`) exposing 15 tools over stdio, plus a `meshwright://report` resource.
+- **Service layer** (`engine.service.MeshService`) shared by the desktop app, MCP and Python callers.
+- **Undo / redo** with numbered states, plus a full keyboard shortcut set and an in-app help dialog.
+- **Crash recovery** — every accepted state is snapshotted in a background thread and offered for
+  recovery if the app does not exit cleanly.
+- **Safety guard** — a change that would add critical problems or discard most of the geometry is
+  rejected, keeping the previous state, with an explicit "apply anyway".
+- **Issue locations** — click any diagnostic to fly to it; exact spots plus a general-area marker.
+- **About panel** listing every engine with its installed version.
+- **Sliver repair** — needle triangles collapsed, cap triangles flipped into larger neighbours.
+- **JSON report** export of diagnostics and the full operation history.
+- MeshFix added to the repair pipeline; scikit-image enables the voxel remesh fallback.
+- Input validation layer (`engine.validation`) applied to every public call.
+
+### Fixed
+- Retopology could return a mesh with new holes and split shells on topologically complex models;
+  every piece is now verified and repaired with MeshFix, or falls back to another engine.
+- Simplify was silently rejected by the safety guard on already-imperfect meshes and appeared to do nothing.
+- Issue highlights were offset from the model, and did not follow the model after rotation.
+- Rotation re-uploaded the whole mesh on every step; it is now instant with a background sync.
+- Drag-and-drop reported "full path unavailable"; paths now come from the Python-side drop handler.
+- The Open dialog crashed on an invalid file-type filter label.
+- A Unicode console write could abort an operation on Windows.
+- A failing logger could abort a mesh operation.
+- Voxel remesh silently did nothing when scikit-image was missing.
+
+### Changed
+- Rebuilt UI: minimal dark theme, resizable panel, activity console, XYZ compass, preset views,
+  rotation gizmo, shell colour-coding that no longer clashes with selection or highlight colours.
+- trimesh upgraded to 5.0; Three.js vendored locally so the app works offline.
+- Renamed to **Meshwright** with a new application icon and Geekatplay Studio branding.
+
+## [1.0.0]
+- Initial release: load, analyse, repair, decimate and export STL.

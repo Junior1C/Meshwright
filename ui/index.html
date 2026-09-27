@@ -14,23 +14,24 @@
 <div class="app">
 
     <header class="topbar">
-        <button class="brand" id="btnAbout" title="About Meshwright">
+        <button class="brand" id="btnAbout" data-i18n-title="nav.aboutTitle" title="About Meshwright">
             <img class="brand-mark" src="assets/icon.png" alt="">
             <span class="brand-name">Meshwright</span>
             <span class="brand-studio">Geekatplay Studio</span>
         </button>
         <div class="topbar-actions">
             <span class="file-name" id="fileName"></span>
-            <span class="state-badge" id="stateBadge" title="Current state number — every change creates a new numbered state"></span>
+            <span class="state-badge" id="stateBadge" data-i18n-title="nav.stateTitle" title="Current state number — every change creates a new numbered state"></span>
             <div class="seg small">
-                <button id="btnUndo" title="Undo (Ctrl+Z)" disabled>Undo</button>
-                <button id="btnRedo" title="Redo (Ctrl+Y)" disabled>Redo</button>
+                <button id="btnUndo" data-i18n-title="nav.undoTitle" title="Undo (Ctrl+Z)" disabled data-i18n="nav.undo">Undo</button>
+                <button id="btnRedo" data-i18n-title="nav.redoTitle" title="Redo (Ctrl+Y)" disabled data-i18n="nav.redo">Redo</button>
             </div>
-            <button id="btnNew" class="btn" title="Close the model and start over (Ctrl+N, or Delete)">New</button>
-            <button id="btnComfyUI" class="btn" title="Install custom nodes into ComfyUI">ComfyUI Nodes</button>
-            <button id="btnHelp" class="btn" title="Keyboard shortcuts (?)">?</button>
-            <button id="btnConsole" class="btn" title="Show activity log (Ctrl+`)">Console</button>
-            <button id="btnOpen" class="btn btn-primary" title="Open model (Ctrl+O)">Open model</button>
+            <button id="btnNew" class="btn" data-i18n-title="nav.newTitle" title="Close the model and start over (Ctrl+N, or Delete)" data-i18n="nav.new">New</button>
+            <button id="btnComfyUI" class="btn" data-i18n-title="nav.comfyTitle" title="Install custom nodes into ComfyUI" data-i18n="nav.comfy">ComfyUI Nodes</button>
+            <button id="btnLang" class="btn" data-i18n-title="nav.langTitle" title="Switch language / Переключить язык">EN</button>
+            <button id="btnHelp" class="btn" data-i18n-title="nav.helpTitle" title="Keyboard shortcuts (?)">?</button>
+            <button id="btnConsole" class="btn" data-i18n-title="nav.consoleTitle" title="Show activity log (Ctrl+`)" data-i18n="nav.console">Console</button>
+            <button id="btnOpen" class="btn btn-primary" data-i18n-title="nav.openTitle" title="Open model (Ctrl+O)" data-i18n="nav.open">Open model</button>
         </div>
     </header>
 
@@ -48,65 +49,65 @@
                     <path d="M3 7l9 5 9-5M12 12v10" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
                 </svg>
                 <div class="empty-spinner hidden" id="emptySpinner"></div>
-                <p id="emptyPrompt">Drop a model here or open one</p>
+                <p id="emptyPrompt" data-i18n="empty.prompt">Drop a model here or open one</p>
                 <small>BLEND · OBJ · FBX · GLB · GLTF · STL · PLY · 3MF · DAE · OFF</small>
-                <small class="note">Meshwright has no model of its own — it works on your files.</small>
-                <button id="btnDemo" class="demo-link" title="Build a small broken test object in memory">Load demo model</button>
+                <small class="note" data-i18n="empty.note">Meshwright has no model of its own — it works on your files.</small>
+                <button id="btnDemo" class="demo-link" data-i18n-title="empty.demoTitle" title="Build a small broken test object in memory" data-i18n="empty.demo">Load demo model</button>
             </div>
 
-            <div class="drop-overlay hidden" id="dropOverlay"><span>Release to load</span></div>
+            <div class="drop-overlay hidden" id="dropOverlay"><span data-i18n="empty.drop">Release to load</span></div>
 
             <div class="viewport-tools">
                 <div class="seg">
-                    <button data-mode="shaded" class="active" title="Shaded">Shaded</button>
-                    <button data-mode="clay" title="Clay">Clay</button>
-                    <button data-mode="normals" title="Normals">Normals</button>
-                    <button data-mode="xray" title="X-ray">X-ray</button>
+                    <button data-mode="shaded" class="active" data-i18n-title="tool.shadedTitle" title="Shaded" data-i18n="tool.shaded">Shaded</button>
+                    <button data-mode="clay" data-i18n-title="tool.clayTitle" title="Clay" data-i18n="tool.clay">Clay</button>
+                    <button data-mode="normals" data-i18n-title="tool.normalsTitle" title="Normals" data-i18n="tool.normals">Normals</button>
+                    <button data-mode="xray" data-i18n-title="tool.xrayTitle" title="X-ray" data-i18n="tool.xray">X-ray</button>
                 </div>
                 <div class="seg" id="segPbrModes">
-                    <button data-mode="pbr" title="Full PBR Shading">PBR</button>
-                    <button data-mode="albedo" title="Albedo / Base Color">Albedo</button>
-                    <button data-mode="normal_map" title="Normal Map">Normal</button>
-                    <button data-mode="roughness_map" title="Roughness Map">Rough</button>
-                    <button data-mode="metallic_map" title="Metallic Map">Metal</button>
-                    <button data-mode="ao_map" title="Ambient Occlusion">AO</button>
-                    <button data-mode="height_map" title="Height / displacement map">Height</button>
+                    <button data-mode="pbr" data-i18n-title="tool.pbrTitle" title="Full PBR Shading">PBR</button>
+                    <button data-mode="albedo" data-i18n-title="tool.albedoTitle" title="Albedo / Base Color" data-i18n="tool.albedo">Albedo</button>
+                    <button data-mode="normal_map" data-i18n-title="tool.normalTitle" title="Normal Map" data-i18n="tool.normal">Normal</button>
+                    <button data-mode="roughness_map" data-i18n-title="tool.roughTitle" title="Roughness Map" data-i18n="tool.rough">Rough</button>
+                    <button data-mode="metallic_map" data-i18n-title="tool.metalTitle" title="Metallic Map" data-i18n="tool.metal">Metal</button>
+                    <button data-mode="ao_map" data-i18n-title="tool.aoTitle" title="Ambient Occlusion">AO</button>
+                    <button data-mode="height_map" data-i18n-title="tool.heightTitle" title="Height / displacement map" data-i18n="tool.height">Height</button>
                 </div>
                 <div class="seg">
-                    <button id="btnOpenUv" title="2D UV Island Unfold View" disabled>2D UVs</button>
+                    <button id="btnOpenUv" data-i18n-title="tool.uvsTitle" title="2D UV Island Unfold View" disabled data-i18n="tool.uvs">2D UVs</button>
                 </div>
-                <div class="seg detail-seg" id="segDetail" title="How much of the model the viewport draws. Repair, reduce and export always use all of it.">
-                    <span class="detail-label">Detail</span>
+                <div class="seg detail-seg" id="segDetail" data-i18n-title="tool.detailTitle" title="How much of the model the viewport draws. Repair, reduce and export always use all of it.">
+                    <span class="detail-label" data-i18n="tool.detail">Detail</span>
                     <input type="range" id="viewDetail" min="5" max="100" step="5" value="100" disabled>
                     <span class="mono detail-value" id="valDetail">100%</span>
                 </div>
                 <div class="seg">
-                    <button id="btnWire" title="Wireframe">Wire</button>
-                    <button id="btnIssues" class="active" title="Highlight open edges">Edges</button>
-                    <button id="btnGrid" class="active" title="Build plate">Plate</button>
-                    <button id="btnGizmo" title="Rotate with gizmo">Rotate</button>
-                    <button id="btnFit" title="Fit view">Fit</button>
+                    <button id="btnWire" data-i18n-title="tool.wireTitle" title="Wireframe" data-i18n="tool.wire">Wire</button>
+                    <button id="btnIssues" class="active" data-i18n-title="tool.edgesTitle" title="Highlight open edges" data-i18n="tool.edges">Edges</button>
+                    <button id="btnGrid" class="active" data-i18n-title="tool.plateTitle" title="Build plate" data-i18n="tool.plate">Plate</button>
+                    <button id="btnGizmo" data-i18n-title="tool.rotateTitle" title="Rotate with gizmo" data-i18n="tool.rotate">Rotate</button>
+                    <button id="btnFit" data-i18n-title="tool.fitTitle" title="Fit view" data-i18n="tool.fit">Fit</button>
                 </div>
             </div>
 
             <div class="nav">
                 <canvas id="compass" width="72" height="72"></canvas>
                 <div class="views">
-                    <button data-view="top">Top</button>
-                    <button data-view="front">Front</button>
-                    <button data-view="right">Right</button>
-                    <button data-view="iso">Iso</button>
-                    <button data-view="bottom">Bottom</button>
-                    <button data-view="back">Back</button>
-                    <button data-view="left">Left</button>
-                    <button id="btnClearHl">Clear</button>
+                    <button data-view="top" data-i18n="view.top">Top</button>
+                    <button data-view="front" data-i18n="view.front">Front</button>
+                    <button data-view="right" data-i18n="view.right">Right</button>
+                    <button data-view="iso" data-i18n="view.iso">Iso</button>
+                    <button data-view="bottom" data-i18n="view.bottom">Bottom</button>
+                    <button data-view="back" data-i18n="view.back">Back</button>
+                    <button data-view="left" data-i18n="view.left">Left</button>
+                    <button id="btnClearHl" data-i18n="view.clear">Clear</button>
                 </div>
             </div>
 
             <div class="console" id="console">
                 <div class="console-head">
-                    <span>Activity</span>
-                    <div><button id="btnConsoleClear" class="link">Clear</button><button id="btnConsoleClose" class="link">Close</button></div>
+                    <span data-i18n="console.activity">Activity</span>
+                    <div><button id="btnConsoleClear" class="link" data-i18n="console.clear">Clear</button><button id="btnConsoleClose" class="link" data-i18n="console.close">Close</button></div>
                 </div>
                 <div class="console-body" id="consoleBody"></div>
             </div>
@@ -117,7 +118,7 @@
             <div class="toasts" id="toasts"></div>
         </section>
 
-        <div class="splitter" id="splitter" title="Drag to resize"></div>
+            <div class="splitter" id="splitter" data-i18n-title="splitter.title" title="Drag to resize"></div>
         <aside class="panel">
 
             <div class="panel-scroll">
@@ -127,69 +128,69 @@
                     <div class="health">
                         <div class="ring" id="scoreRing"><span id="scoreValue">–</span></div>
                         <div>
-                            <div class="health-verdict" id="verdict">No model loaded</div>
-                            <div class="health-sub" id="verdictSub">Open a file to run diagnostics. Drag to orbit, scroll to zoom, right-drag to pan.</div>
+                            <div class="health-verdict" id="verdict" data-i18n="health.none">No model loaded</div>
+                            <div class="health-sub" id="verdictSub" data-i18n="health.noneSub">Open a file to run diagnostics. Drag to orbit, scroll to zoom, right-drag to pan.</div>
                         </div>
                     </div>
                 </section>
 
                 <!-- Issues -->
                 <section class="card">
-                    <h2>Diagnostics <span class="count" id="issueCount"></span><span class="right links"><button id="btnReanalyse" class="link" disabled>Re-analyse</button><button id="btnReport" class="link" disabled>Save JSON</button></span></h2>
-                    <p class="hint" id="issueHint">Click an issue to locate it on the model.</p>
+                    <h2><span data-i18n="diag.title">Diagnostics</span> <span class="count" id="issueCount"></span><span class="right links"><button id="btnReanalyse" class="link" disabled data-i18n="diag.reanalyse">Re-analyse</button><button id="btnReport" class="link" disabled data-i18n="diag.saveJson">Save JSON</button></span></h2>
+                    <p class="hint" id="issueHint" data-i18n="diag.hint">Click an issue to locate it on the model.</p>
                     <ul class="issues" id="issueList"><li class="muted">—</li></ul>
                 </section>
 
                 <!-- Shells -->
                 <section class="card hidden" id="cardShells">
-                    <h2>Separate pieces <span class="count" id="shellCount"></span></h2>
-                    <p class="hint">Click a piece in the view to select it. Shift-click adds or removes a piece; click empty space to clear. Selected pieces turn red. Drag to orbit, then use Remove selected to delete.</p>
+                    <h2><span data-i18n="shells.title">Separate pieces</span> <span class="count" id="shellCount"></span></h2>
+                    <p class="hint" data-i18n="shells.hint">Click a piece in the view to select it. Shift-click adds or removes a piece; click empty space to clear. Selected pieces turn red. Drag to orbit, then use Remove selected to delete.</p>
                     <ul class="shells" id="shellList"></ul>
                     <div class="row three">
-                        <button id="btnShellsAll" class="btn wide">Select all</button>
-                        <button id="btnShellsHighlight" class="btn wide active">Highlight</button>
+                        <button id="btnShellsAll" class="btn wide" data-i18n="shells.selectAll">Select all</button>
+                        <button id="btnShellsHighlight" class="btn wide active" data-i18n="shells.highlight">Highlight</button>
                     </div>
-                    <button id="btnShellsRemove" class="btn wide" disabled>Remove selected</button>
+                    <button id="btnShellsRemove" class="btn wide" disabled data-i18n="shells.remove">Remove selected</button>
                 </section>
 
                 <!-- Stats -->
                 <section class="card">
-                    <h2>Geometry</h2>
+                    <h2 data-i18n="stats.title">Geometry</h2>
                     <dl class="stats" id="statGrid">
-                        <dt>Faces</dt><dd id="sFaces">–</dd>
-                        <dt>Vertices</dt><dd id="sVerts">–</dd>
-                        <dt>Edges</dt><dd id="sEdges">–</dd>
-                        <dt>Shells</dt><dd id="sBodies">–</dd>
-                        <dt>Size</dt><dd id="sDims">–</dd>
-                        <dt>Volume</dt><dd id="sVolume">–</dd>
-                        <dt>Surface</dt><dd id="sArea">–</dd>
-                        <dt>Watertight</dt><dd id="sWater">–</dd>
-                        <dt>Winding</dt><dd id="sWinding">–</dd>
-                        <dt>Open edges</dt><dd id="sBoundary">–</dd>
-                        <dt>Non-manifold</dt><dd id="sNonMan">–</dd>
-                        <dt>Genus</dt><dd id="sGenus">–</dd>
+                        <dt data-i18n="stats.faces">Faces</dt><dd id="sFaces">–</dd>
+                        <dt data-i18n="stats.vertices">Vertices</dt><dd id="sVerts">–</dd>
+                        <dt data-i18n="stats.edges">Edges</dt><dd id="sEdges">–</dd>
+                        <dt data-i18n="stats.shells">Shells</dt><dd id="sBodies">–</dd>
+                        <dt data-i18n="stats.size">Size</dt><dd id="sDims">–</dd>
+                        <dt data-i18n="stats.volume">Volume</dt><dd id="sVolume">–</dd>
+                        <dt data-i18n="stats.surface">Surface</dt><dd id="sArea">–</dd>
+                        <dt data-i18n="stats.watertight">Watertight</dt><dd id="sWater">–</dd>
+                        <dt data-i18n="stats.winding">Winding</dt><dd id="sWinding">–</dd>
+                        <dt data-i18n="stats.openEdges">Open edges</dt><dd id="sBoundary">–</dd>
+                        <dt data-i18n="stats.nonmanifold">Non-manifold</dt><dd id="sNonMan">–</dd>
+                        <dt data-i18n="stats.genus">Genus</dt><dd id="sGenus">–</dd>
                     </dl>
                 </section>
 
                 <!-- Repair -->
                 <section class="card">
-                    <h2>Repair</h2>
-                    <label class="check"><input type="checkbox" id="chkStrict" checked><span>Force watertight (voxel rebuild as last resort)</span></label>
-                    <button id="btnRepair" class="btn btn-primary wide" disabled>Repair mesh</button>
-                    <button id="btnSlivers" class="btn wide hidden">Fix sliver triangles</button>
-                    <button id="btnRevert" class="link revert" disabled>Revert to original file</button>
+                    <h2 data-i18n="repair.title">Repair</h2>
+                    <label class="check"><input type="checkbox" id="chkStrict" checked><span data-i18n="repair.strict">Force watertight (voxel rebuild as last resort)</span></label>
+                    <button id="btnRepair" class="btn btn-primary wide" disabled data-i18n="repair.go">Repair mesh</button>
+                    <button id="btnSlivers" class="btn wide hidden" data-i18n="repair.slivers">Fix sliver triangles</button>
+                    <button id="btnRevert" class="link revert" disabled data-i18n="repair.revert">Revert to original file</button>
                     <div class="report hidden" id="report">
-                        <h3>What was fixed</h3>
+                        <h3 data-i18n="repair.fixed">What was fixed</h3>
                         <ul id="fixList"></ul>
-                        <h3>Before → after</h3>
+                        <h3 data-i18n="repair.beforeAfter">Before → after</h3>
                         <table id="changeTable"></table>
                     </div>
                 </section>
 
                 <!-- Orientation -->
                 <section class="card">
-                    <h2>Orientation</h2>
-                    <p class="hint">Turn on <strong>Rotate</strong> in the viewport to drag the rings, or step 90° here. Applies to the exported STL.</p>
+                    <h2 data-i18n="orient.title">Orientation</h2>
+                    <p class="hint" data-i18n-html="orient.hint">Turn on <strong>Rotate</strong> in the viewport to drag the rings, or step 90° here. Applies to the exported STL.</p>
                     <div class="row three">
                         <button class="btn rot" data-axis="x" disabled>X +90°</button>
                         <button class="btn rot" data-axis="y" disabled>Y +90°</button>
@@ -199,20 +200,20 @@
 
                 <!-- Reduce -->
                 <section class="card">
-                    <h2>Reduce</h2>
+                    <h2 data-i18n="reduce.title">Reduce</h2>
                     <div class="seg full" id="reduceMode">
-                        <button data-reduce="quadriflow" class="active" title="Rebuilds the surface as clean, evenly sized quads aligned to the shape. Best for organic and scanned models and true low-poly looks.">Smart retopo</button>
-                        <button data-reduce="quadric" title="Collapses edges while preserving topology and hard edges. Sharpest result.">Decimate</button>
-                        <button data-reduce="isotropic" title="Uniform triangles of equal size, then collapse to the target. Good for noisy scans.">Uniform</button>
+                        <button data-reduce="quadriflow" class="active" data-i18n-title="reduce.smartTitle" title="Rebuilds the surface as clean, evenly sized quads aligned to the shape. Best for organic and scanned models and true low-poly looks." data-i18n="reduce.smart">Smart retopo</button>
+                        <button data-reduce="quadric" data-i18n-title="reduce.decimateTitle" title="Collapses edges while preserving topology and hard edges. Sharpest result." data-i18n="reduce.decimate">Decimate</button>
+                        <button data-reduce="isotropic" data-i18n-title="reduce.uniformTitle" title="Uniform triangles of equal size, then collapse to the target. Good for noisy scans." data-i18n="reduce.uniform">Uniform</button>
                     </div>
                     <div class="row">
                         <input type="range" id="sliderReduce" min="5" max="99.5" step="0.5" value="50" disabled>
                         <span class="mono" id="reduceVal">50%</span>
                     </div>
                     <div class="row target">
-                        <span>Target</span>
+                        <span data-i18n="reduce.target">Target</span>
                         <input type="number" id="targetInput" class="mono" min="20" step="1" disabled>
-                        <span class="hint">faces</span>
+                        <span class="hint" data-i18n="reduce.faces">faces</span>
                     </div>
                     <div class="presets">
                         <button data-faces="500">500</button>
@@ -220,115 +221,115 @@
                         <button data-faces="10000">10k</button>
                         <button data-faces="50000">50k</button>
                     </div>
-                    <label class="check" id="rowSharp"><input type="checkbox" id="chkSharp" checked><span>Preserve sharp edges</span></label>
-                    <button id="btnReduce" class="btn wide" disabled>Reduce polygons</button>
+                    <label class="check" id="rowSharp"><input type="checkbox" id="chkSharp" checked><span data-i18n="reduce.sharp">Preserve sharp edges</span></label>
+                    <button id="btnReduce" class="btn wide" disabled data-i18n="reduce.go">Reduce polygons</button>
                     <div class="hint" id="reduceResult"></div>
                 </section>
 
                 <!-- Texture & PBR -->
                 <section class="card" id="cardTexture">
-                    <h2>Texture &amp; PBR</h2>
-                    <p class="hint">Unwrap UVs, derive PBR maps from image, edit in Photoshop, bake to GLB.</p>
+                    <h2 data-i18n="tex.title">Texture &amp; PBR</h2>
+                    <p class="hint" data-i18n="tex.hint">Unwrap UVs, derive PBR maps from image, edit in Photoshop, bake to GLB.</p>
                     <div class="row two">
-                        <button id="btnUnwrapUV" class="btn" disabled>Unwrap UVs</button>
-                        <button id="btnViewUV" class="btn" disabled>2D UV View</button>
+                        <button id="btnUnwrapUV" class="btn" disabled data-i18n="tex.unwrap">Unwrap UVs</button>
+                        <button id="btnViewUV" class="btn" disabled data-i18n="tex.view2d">2D UV View</button>
                     </div>
                     <div id="uvStats" class="hint hidden"></div>
 
-                    <p class="hint" style="margin-top:10px; font-weight:600;">PBR Map Generation</p>
-                    <button id="btnLoadTexture" class="btn wide" disabled>Load Image / Generate PBR</button>
+                    <p class="hint" style="margin-top:10px; font-weight:600;" data-i18n="tex.pbrGen">PBR Map Generation</p>
+                    <button id="btnLoadTexture" class="btn wide" disabled data-i18n="tex.loadGen">Load Image / Generate PBR</button>
 
-                    <div class="row"><span>Normal</span><input type="range" id="pbrNormalStr" min="0.5" max="5.0" step="0.1" value="2.0"><span class="mono" id="valNormalStr">2.0</span></div>
-                    <label class="check"><input type="checkbox" id="chkOpenGLNormal" checked><span>OpenGL Normal (+Y) / DirectX (-Y)</span></label>
-                    <label class="check"><input type="checkbox" id="chkTileable"><span title="Tick for a repeating material, leave off for a photo or a texture painted for this model">Image tiles seamlessly</span></label>
-                    <div class="row"><span>Roughness</span><input type="range" id="pbrRoughness" min="0.0" max="1.0" step="0.05" value="0.5"><span class="mono" id="valRoughness">0.5</span></div>
-                    <div class="row"><span>Metallic</span><input type="range" id="pbrMetallic" min="0.0" max="1.0" step="0.05" value="0.0"><span class="mono" id="valMetallic">0.0</span></div>
-                    <div class="row"><span title="Push the surface out along the height map. Needs a dense mesh to show detail.">Displace</span><input type="range" id="pbrDisplace" min="0" max="5" step="0.1" value="0" disabled><span class="mono" id="valDisplace">off</span></div>
+                    <div class="row"><span data-i18n="tex.normal">Normal</span><input type="range" id="pbrNormalStr" min="0.5" max="5.0" step="0.1" value="2.0"><span class="mono" id="valNormalStr">2.0</span></div>
+                    <label class="check"><input type="checkbox" id="chkOpenGLNormal" checked><span data-i18n="tex.opengl">OpenGL Normal (+Y) / DirectX (-Y)</span></label>
+                    <label class="check"><input type="checkbox" id="chkTileable"><span data-i18n-title="tex.tileableTitle" title="Tick for a repeating material, leave off for a photo or a texture painted for this model" data-i18n="tex.tileable">Image tiles seamlessly</span></label>
+                    <div class="row"><span data-i18n="tex.roughness">Roughness</span><input type="range" id="pbrRoughness" min="0.0" max="1.0" step="0.05" value="0.5"><span class="mono" id="valRoughness">0.5</span></div>
+                    <div class="row"><span data-i18n="tex.metallic">Metallic</span><input type="range" id="pbrMetallic" min="0.0" max="1.0" step="0.05" value="0.0"><span class="mono" id="valMetallic">0.0</span></div>
+                    <div class="row"><span data-i18n-title="tex.displaceTitle" title="Push the surface out along the height map. Needs a dense mesh to show detail." data-i18n="tex.displace">Displace</span><input type="range" id="pbrDisplace" min="0" max="5" step="0.1" value="0" disabled><span class="mono" id="valDisplace">off</span></div>
 
-                    <p class="hint" style="margin-top:10px; font-weight:600;">Photoshop Round-Trip</p>
+                    <p class="hint" style="margin-top:10px; font-weight:600;" data-i18n="tex.roundtrip">Photoshop Round-Trip</p>
                     <div class="row two">
-                        <button id="btnExportTex" class="btn" disabled title="Export maps + transparent UV guide PNG for Photoshop">Export Maps</button>
-                        <button id="btnReloadTex" class="btn" disabled title="Reload edited texture PNG files">Reload Maps</button>
+                        <button id="btnExportTex" class="btn" disabled data-i18n-title="tex.exportTitle" title="Export maps + transparent UV guide PNG for Photoshop" data-i18n="tex.export">Export Maps</button>
+                        <button id="btnReloadTex" class="btn" disabled data-i18n-title="tex.reloadTitle" title="Reload edited texture PNG files" data-i18n="tex.reload">Reload Maps</button>
                     </div>
-                    <button id="btnBakeGLB" class="btn btn-primary wide" style="margin-top:6px;" disabled title="Export self-contained GLB with embedded PBR textures">Save Baked GLB</button>
+                    <button id="btnBakeGLB" class="btn btn-primary wide" style="margin-top:6px;" disabled data-i18n-title="tex.bakeTitle" title="Export self-contained GLB with embedded PBR textures" data-i18n="tex.bake">Save Baked GLB</button>
                 </section>
 
                 <!-- Printer check -->
                 <!-- Jewellery: a small audience, so it stays shut until wanted -->
                 <section class="card card-fold" id="cardRing">
                     <details id="ringFold">
-                        <summary><h2>Jewellery &mdash; rings for wax casting</h2></summary>
-                        <p class="hint">For a ring going to lost-wax casting. Meshwright measures it,
+                        <summary><h2 data-i18n="ring.title">Jewellery &mdash; rings for wax casting</h2></summary>
+                        <p class="hint" data-i18n="ring.hint">For a ring going to lost-wax casting. Meshwright measures it,
                         then hands the geometry to Blender for a true, correctly sized comfort-fit
                         bore and edges taken off without losing the engraving.</p>
 
                         <div class="ring-blender" id="ringBlender">
-                            <span class="ring-blender-state" id="ringBlenderState">Looking for Blender&hellip;</span>
-                            <button id="btnFindBlender" class="btn small">Find Blender&hellip;</button>
+                            <span class="ring-blender-state" id="ringBlenderState" data-i18n="ring.looking">Looking for Blender&hellip;</span>
+                            <button id="btnFindBlender" class="btn small" data-i18n="ring.find">Find Blender&hellip;</button>
                         </div>
 
-                        <button id="btnRingMeasure" class="btn wide" disabled>Measure this ring</button>
+                        <button id="btnRingMeasure" class="btn wide" disabled data-i18n="ring.measure">Measure this ring</button>
                         <div id="ringReport"></div>
 
                         <div class="row two">
-                            <label><span>Size system</span>
+                            <label><span data-i18n="ring.sizeSystem">Size system</span>
                                 <select id="ringSizeSystem">
-                                    <option value="us">US</option>
-                                    <option value="iso">ISO / EU (mm)</option>
+                                    <option value="us" data-i18n="ring.us">US</option>
+                                    <option value="iso" data-i18n="ring.isoOpt">ISO / EU (mm)</option>
                                 </select></label>
-                            <label><span id="ringSizeLabel">US size</span>
+                            <label><span id="ringSizeLabel" data-i18n="ring.usSize">US size</span>
                                 <input type="number" id="ringSize" step="0.25" min="1" max="20" value="7"></label>
                         </div>
                         <div class="row two">
-                            <label><span>Minimum wall (mm)</span>
+                            <label><span data-i18n="ring.minWall">Minimum wall (mm)</span>
                                 <input type="number" id="ringMinWall" step="0.05" min="0" max="5" value="1.0"></label>
-                            <label><span>Soften edges (mm)</span>
+                            <label><span data-i18n="ring.bevel">Soften edges (mm)</span>
                                 <input type="number" id="ringBevel" step="0.05" min="0" max="2" value="0.15"></label>
                         </div>
                         <div class="row two">
-                            <label><span>Print at (%)</span>
+                            <label><span data-i18n="ring.scale">Print at (%)</span>
                                 <input type="number" id="ringScale" step="0.1" min="90" max="115" value="100"></label>
-                            <label class="check ring-check"><input type="checkbox" id="ringComfort" checked><span>Comfort fit</span></label>
+                            <label class="check ring-check"><input type="checkbox" id="ringComfort" checked><span data-i18n="ring.comfort">Comfort fit</span></label>
                         </div>
-                        <p class="hint" id="ringScaleNote">Shrinkage is yours to set &mdash; resin, investment,
+                        <p class="hint" id="ringScaleNote" data-i18n="ring.scaleNote">Shrinkage is yours to set &mdash; resin, investment,
                         metal and kiln all change it. Dial it in with a test cast.</p>
-                        <label class="check"><input type="checkbox" id="ringRepairFirst" checked><span>Repair the mesh first</span></label>
-                        <button id="btnRingFix" class="btn btn-primary wide" disabled>Fix this ring</button>
+                        <label class="check"><input type="checkbox" id="ringRepairFirst" checked><span data-i18n="ring.repairFirst">Repair the mesh first</span></label>
+                        <button id="btnRingFix" class="btn btn-primary wide" disabled data-i18n="ring.fix">Fix this ring</button>
                         <div id="ringResult"></div>
                     </details>
                 </section>
 
                 <section class="card" id="cardPrinter">
-                    <h2>Print check &mdash; will it print?</h2>
-                    <p class="hint">Choose the printer this model is going to, and Meshwright measures whether the
+                    <h2 data-i18n="print.title">Print check &mdash; will it print?</h2>
+                    <p class="hint" data-i18n="print.hint">Choose the printer this model is going to, and Meshwright measures whether the
                     detail in it is something that machine can physically make &mdash; nozzle size on a
                     filament printer, screen pixel on a resin one. Anything too fine is listed and can be
                     clicked to light it up on the model. It reports only; it changes nothing.</p>
                     <div class="row">
-                        <span>Maker</span>
+                        <span data-i18n="print.maker">Maker</span>
                         <select id="printerMaker"></select>
                     </div>
                     <div class="row">
-                        <span>Model</span>
+                        <span data-i18n="print.model">Model</span>
                         <select id="printerModel"></select>
                     </div>
                     <p class="hint" id="printerSpec">–</p>
                     <div class="row two" id="printerTune">
-                        <label><span id="printerUnitLabel">Nozzle (mm)</span>
+                        <label><span id="printerUnitLabel" data-i18n="print.nozzle">Nozzle (mm)</span>
                             <input type="number" id="printerUnit" step="0.01" min="0.01" max="500"></label>
-                        <label><span>Layer (mm)</span>
+                        <label><span data-i18n="print.layer">Layer (mm)</span>
                             <input type="number" id="printerLayer" step="0.01" min="0.01" max="2"></label>
                     </div>
-                    <label class="check"><input type="checkbox" id="chkThorough"><span>Check every layer (slower, exact)</span></label>
-                    <button id="btnPrintCheck" class="btn btn-primary wide" disabled>Check this model</button>
+                    <label class="check"><input type="checkbox" id="chkThorough"><span data-i18n="print.thorough">Check every layer (slower, exact)</span></label>
+                    <button id="btnPrintCheck" class="btn btn-primary wide" disabled data-i18n="print.go">Check this model</button>
                     <div id="printResult"></div>
                 </section>
 
                 <!-- Export -->
                 <section class="card">
-                    <h2>Export</h2>
+                    <h2 data-i18n="export.title">Export</h2>
                     <div class="row two">
-                        <label>Format
+                        <label><span data-i18n="export.format">Format</span>
                             <select id="selExportFormat">
                                 <option value="stl">STL</option>
                                 <option value="obj">OBJ</option>
@@ -337,27 +338,27 @@
                                 <option value="glb">GLB</option>
                                 <option value="gltf">glTF</option>
                                 <option value="3mf">3MF</option>
-                                <option value="fbx" disabled>FBX (not available)</option>
+                                <option value="fbx" disabled data-i18n="export.fbxNa">FBX (not available)</option>
                             </select>
                         </label>
-                        <label>Source units
+                        <label><span data-i18n="export.units">Source units</span>
                             <select id="selUnit">
-                                <option value="mm">Millimetres</option>
-                                <option value="cm">Centimetres</option>
-                                <option value="in">Inches</option>
+                                <option value="mm" data-i18n="export.mm">Millimetres</option>
+                                <option value="cm" data-i18n="export.cm">Centimetres</option>
+                                <option value="in" data-i18n="export.in">Inches</option>
                             </select>
                         </label>
-                        <label class="check"><input type="checkbox" id="chkAlign" checked><span>Rest on build plate</span></label>
+                        <label class="check"><input type="checkbox" id="chkAlign" checked><span data-i18n="export.align">Rest on build plate</span></label>
                     </div>
-                    <button id="btnExport" class="btn btn-primary wide" disabled>Export</button>
+                    <button id="btnExport" class="btn btn-primary wide" disabled data-i18n="export.go">Export</button>
                 </section>
 
                 <!-- View -->
                 <section class="card">
-                    <h2>Light</h2>
-                    <div class="row"><span>Angle</span><input type="range" id="lightAz" min="0" max="360" value="45"></div>
-                    <div class="row"><span>Height</span><input type="range" id="lightEl" min="5" max="90" value="55"></div>
-                    <div class="row"><span>Power</span><input type="range" id="lightPow" min="0.2" max="2.5" step="0.1" value="1.2"></div>
+                    <h2 data-i18n="light.title">Light</h2>
+                    <div class="row"><span data-i18n="light.angle">Angle</span><input type="range" id="lightAz" min="0" max="360" value="45"></div>
+                    <div class="row"><span data-i18n="light.height">Height</span><input type="range" id="lightEl" min="5" max="90" value="55"></div>
+                    <div class="row"><span data-i18n="light.power">Power</span><input type="range" id="lightPow" min="0.2" max="2.5" step="0.1" value="1.2"></div>
                 </section>
 
             </div>
@@ -371,49 +372,49 @@
 
 <div class="modal hidden" id="about">
     <div class="modal-card about-card">
-        <button class="about-close" id="btnAboutClose" title="Close (Esc)">&times;</button>
+        <button class="about-close" id="btnAboutClose" data-i18n-title="about.closeTitle" title="Close (Esc)">&times;</button>
         <div class="about-head">
             <img src="assets/icon.png" alt="">
             <div>
                 <h2>Meshwright <span class="mono" id="aboutVersion"></span></h2>
-                <p>Mesh analysis, repair and STL preparation for 3D printing</p>
-                <p class="by">Geekatplay Studio &middot; Vladimir Chopine</p>
+                <p data-i18n="about.tag">Mesh analysis, repair and STL preparation for 3D printing</p>
+                <p class="by" data-i18n="about.by">Geekatplay Studio &middot; Vladimir Chopine</p>
             </div>
         </div>
-        <a class="donate" href="https://geekatplay.gumroad.com/coffee" data-url="https://geekatplay.gumroad.com/coffee">&#9749; Buy me a coffee &mdash; support Meshwright development</a>
+        <a class="donate" href="https://geekatplay.gumroad.com/coffee" data-url="https://geekatplay.gumroad.com/coffee" data-i18n="about.coffee">&#9749; Buy me a coffee &mdash; support Meshwright development</a>
 
         <section>
-            <h3>What it does</h3>
-            <p>Meshwright takes any common 3D model, tells you exactly why it would fail on a 3D printer, fixes it while
+            <h3 data-i18n="about.what">What it does</h3>
+            <p data-i18n="about.whatBody">Meshwright takes any common 3D model, tells you exactly why it would fail on a 3D printer, fixes it while
             reporting what changed, and exports a print-ready model resting on the build plate.</p>
         </section>
 
         <section>
-            <h3>How it works</h3>
-            <ol>
-                <li><strong>Load</strong> &mdash; BLEND (requires an installed Blender), OBJ, FBX, GLB/GLTF, STL, PLY, 3MF, DAE, OFF are read with trimesh (ufbx and MeshLab as fallbacks); materials are skipped and duplicate vertices merged.</li>
-                <li><strong>Diagnose</strong> &mdash; open holes, boundary and non-manifold edges, face winding, inside-out normals, degenerate, duplicate and sliver triangles, unused vertices, separate shells, scale, volume and genus. Every issue carries its location so it can be highlighted on the model. A 0&ndash;100 readiness score summarises the result.</li>
-                <li><strong>Repair</strong> &mdash; a staged pipeline where each stage is measured and kept only if it helps: cleanup &rarr; orientation &rarr; small-hole filling &rarr; MeshFix &rarr; MeshLab non-manifold repair &rarr; Manifold3D solid reconstruction &rarr; voxel remesh as last resort. It re-runs until the mesh stops changing, then re-analyses the final result.</li>
-                <li><strong>Refine</strong> &mdash; sliver triangles are merged into larger neighbours (needles collapsed, caps flipped); polygon count is reduced three ways &mdash; QuadriFlow smart retopology (clean curvature-aligned quads, true low-poly), uniform isotropic remeshing, or topology-preserving quadric collapse &mdash; always with the measured surface deviation; separate pieces can be highlighted and removed; the model can be rotated with a gizmo or in 90&deg; steps.</li>
-                <li><strong>Safeguards</strong> &mdash; every change is a numbered state with undo/redo. A change that would add critical problems or discard most of the geometry is rejected unless you apply it anyway. Every state is snapshotted in the background so a crash can be recovered on the next start.</li>
-                <li><strong>Export</strong> &mdash; STL (binary), OBJ, PLY, OFF, GLB, glTF or 3MF with unit scaling and build-plate alignment, plus a JSON report of the diagnostics and every operation applied. The result is measured as it is written: inside-out models are turned the right way out, and a file that is not a closed solid says so &mdash; a slicer prints an open surface as a single-wall shell with no infill.</li>
+            <h3 data-i18n="about.how">How it works</h3>
+            <ol id="aboutHow">
+                <li data-i18n-html="about.how1"><strong>Load</strong> &mdash; BLEND (requires an installed Blender), OBJ, FBX, GLB/GLTF, STL, PLY, 3MF, DAE, OFF are read with trimesh (ufbx and MeshLab as fallbacks); materials are skipped and duplicate vertices merged.</li>
+                <li data-i18n-html="about.how2"><strong>Diagnose</strong> &mdash; open holes, boundary and non-manifold edges, face winding, inside-out normals, degenerate, duplicate and sliver triangles, unused vertices, separate shells, scale, volume and genus. Every issue carries its location so it can be highlighted on the model. A 0&ndash;100 readiness score summarises the result.</li>
+                <li data-i18n-html="about.how3"><strong>Repair</strong> &mdash; a staged pipeline where each stage is measured and kept only if it helps: cleanup &rarr; orientation &rarr; small-hole filling &rarr; MeshFix &rarr; MeshLab non-manifold repair &rarr; Manifold3D solid reconstruction &rarr; voxel remesh as last resort. It re-runs until the mesh stops changing, then re-analyses the final result.</li>
+                <li data-i18n-html="about.how4"><strong>Refine</strong> &mdash; sliver triangles are merged into larger neighbours (needles collapsed, caps flipped); polygon count is reduced three ways &mdash; QuadriFlow smart retopology (clean curvature-aligned quads, true low-poly), uniform isotropic remeshing, or topology-preserving quadric collapse &mdash; always with the measured surface deviation; separate pieces can be highlighted and removed; the model can be rotated with a gizmo or in 90&deg; steps.</li>
+                <li data-i18n-html="about.how5"><strong>Safeguards</strong> &mdash; every change is a numbered state with undo/redo. A change that would add critical problems or discard most of the geometry is rejected unless you apply it anyway. Every state is snapshotted in the background so a crash can be recovered on the next start.</li>
+                <li data-i18n-html="about.how6"><strong>Export</strong> &mdash; STL (binary), OBJ, PLY, OFF, GLB, glTF or 3MF with unit scaling and build-plate alignment, plus a JSON report of the diagnostics and every operation applied. The result is measured as it is written: inside-out models are turned the right way out, and a file that is not a closed solid says so &mdash; a slicer prints an open surface as a single-wall shell with no infill.</li>
             </ol>
         </section>
 
         <section>
-            <h3>Engines in use</h3>
+            <h3 data-i18n="about.engines">Engines in use</h3>
             <table class="libs" id="aboutLibs"></table>
-            <p class="small">Viewport: Three.js <span id="aboutThree"></span> &middot; Desktop shell: pywebview (Edge WebView2) &middot; Python <span id="aboutPython"></span> on <span id="aboutPlatform"></span></p>
+            <p class="small" id="aboutFoot">Viewport: Three.js <span id="aboutThree"></span> &middot; Desktop shell: pywebview (Edge WebView2) &middot; Python <span id="aboutPython"></span> on <span id="aboutPlatform"></span></p>
         </section>
 
         <section>
-            <h3>Integrations</h3>
-            <p>The same engine is available to AI assistants and editors through an MCP server (<span class="mono">python mcp_server.py</span>),
+            <h3 data-i18n="about.integrations">Integrations</h3>
+            <p data-i18n-html="about.integrationsBody">The same engine is available to AI assistants and editors through an MCP server (<span class="mono">python mcp_server.py</span>),
             directly from Python (<span class="mono">engine.service.MeshService</span>), and as custom nodes for <strong>ComfyUI</strong>.</p>
-            <p style="margin-top: 8px;"><button id="btnAboutComfyUI" class="btn">Install ComfyUI Custom Nodes</button></p>
+            <p style="margin-top: 8px;"><button id="btnAboutComfyUI" class="btn" data-i18n="about.installComfy">Install ComfyUI Custom Nodes</button></p>
         </section>
 
-        <a class="donate" href="https://geekatplay.gumroad.com/coffee" data-url="https://geekatplay.gumroad.com/coffee">&#9749; Buy me a coffee &mdash; geekatplay.gumroad.com/coffee</a>
+        <a class="donate" href="https://geekatplay.gumroad.com/coffee" data-url="https://geekatplay.gumroad.com/coffee" data-i18n="about.coffeeShort">&#9749; Buy me a coffee &mdash; geekatplay.gumroad.com/coffee</a>
         <p class="small center">&copy; Geekatplay Studio &middot; Vladimir Chopine &middot; <a href="https://www.geekatplay.com" data-url="https://www.geekatplay.com">geekatplay.com</a></p>
     </div>
 </div>
@@ -428,16 +429,16 @@
 
 <div class="modal hidden" id="parts">
     <div class="modal-card parts-card">
-        <button class="about-close" id="btnPartsClose" title="Close (Esc)">&times;</button>
-        <h2 id="partsTitle">This file holds several objects</h2>
-        <p class="hint" id="partsHint">Choose what to open.</p>
+        <button class="about-close" id="btnPartsClose" data-i18n-title="about.closeTitle" title="Close (Esc)">&times;</button>
+        <h2 id="partsTitle" data-i18n="parts.title">This file holds several objects</h2>
+        <p class="hint" id="partsHint" data-i18n="parts.hint">Choose what to open.</p>
         <div class="parts-list" id="partsList"></div>
         <div class="parts-foot">
-            <button id="btnPartsAll" class="btn small">Select all</button>
+            <button id="btnPartsAll" class="btn small" data-i18n="parts.selectAll">Select all</button>
             <span class="muted" id="partsCount"></span>
             <span class="browser-spacer"></span>
-            <button id="btnPartsCancel" class="btn">Cancel</button>
-            <button id="btnPartsOpen" class="btn btn-primary">Open these</button>
+            <button id="btnPartsCancel" class="btn" data-i18n="parts.cancel">Cancel</button>
+            <button id="btnPartsOpen" class="btn btn-primary" data-i18n="parts.open">Open these</button>
         </div>
     </div>
 </div>
@@ -445,18 +446,18 @@
 <div class="modal hidden" id="browser">
     <div class="modal-card browser-card">
         <div class="browser-head">
-            <h2>Open model</h2>
-            <p class="hint">Pick a file to see what is in it before it is opened.</p>
+            <h2 data-i18n="browser.title">Open model</h2>
+            <p class="hint" data-i18n="browser.hint">Pick a file to see what is in it before it is opened.</p>
             <div class="browser-head-actions">
-                <button id="btnBrowseWindows" class="btn small" title="Use the standard Windows file dialog instead">Windows dialog…</button>
-                <button class="about-close" id="btnBrowserClose" title="Close (Esc)">&times;</button>
+                <button id="btnBrowseWindows" class="btn small" data-i18n-title="browser.windowsTitle" title="Use the standard Windows file dialog instead" data-i18n="browser.windows">Windows dialog…</button>
+                <button class="about-close" id="btnBrowserClose" data-i18n-title="about.closeTitle" title="Close (Esc)">&times;</button>
             </div>
         </div>
 
         <div class="browser-bar">
-            <button id="btnBrowseUp" class="btn small" title="Up one folder (Backspace)">&uarr;</button>
+            <button id="btnBrowseUp" class="btn small" data-i18n-title="browser.upTitle" title="Up one folder (Backspace)">&uarr;</button>
             <div class="crumbs" id="browserCrumbs"></div>
-            <input type="text" id="browserFilter" class="browser-filter" placeholder="Filter by name" spellcheck="false">
+            <input type="text" id="browserFilter" class="browser-filter" data-i18n-ph="browser.filterPh" placeholder="Filter by name" spellcheck="false">
         </div>
 
         <div class="browser-body">
@@ -466,32 +467,32 @@
         </div>
 
         <div class="browser-foot">
-            <label class="check"><input type="checkbox" id="browserShowAll"><span>Show every file</span></label>
+            <label class="check"><input type="checkbox" id="browserShowAll"><span data-i18n="browser.showAll">Show every file</span></label>
             <span class="muted" id="browserCount"></span>
             <span class="browser-spacer"></span>
-            <button id="btnBrowserCancel" class="btn">Cancel</button>
-            <button id="btnBrowserOpen" class="btn btn-primary" disabled>Open</button>
+            <button id="btnBrowserCancel" class="btn" data-i18n="browser.cancel">Cancel</button>
+            <button id="btnBrowserOpen" class="btn btn-primary" disabled data-i18n="browser.open">Open</button>
         </div>
     </div>
 </div>
 
 <div class="modal hidden" id="uvModal">
     <div class="modal-card uv-card">
-        <button class="about-close" id="btnUvClose" title="Close (Esc)">&times;</button>
+        <button class="about-close" id="btnUvClose" data-i18n-title="about.closeTitle" title="Close (Esc)">&times;</button>
         <div class="uv-modal-head">
-            <h2>2D UV Island Unfold View</h2>
-            <p class="hint">Inspect UV coordinates, seam borders, and channel overlays. Scroll to zoom, drag to pan, double-click to reset.</p>
+            <h2 data-i18n="uv.title">2D UV Island Unfold View</h2>
+            <p class="hint" data-i18n="uv.hint">Inspect UV coordinates, seam borders, and channel overlays. Scroll to zoom, drag to pan, double-click to reset.</p>
         </div>
         <div class="uv-toolbar">
             <div class="seg small" id="uvChannelSeg">
-                <button data-uvchannel="none" class="active">Grid</button>
-                <button data-uvchannel="albedo">Albedo</button>
-                <button data-uvchannel="normal">Normal</button>
-                <button data-uvchannel="roughness">Roughness</button>
-                <button data-uvchannel="metallic">Metallic</button>
-                <button data-uvchannel="ao">AO</button>
+                <button data-uvchannel="none" class="active" data-i18n="uv.grid">Grid</button>
+                <button data-uvchannel="albedo" data-i18n="uv.albedo">Albedo</button>
+                <button data-uvchannel="normal" data-i18n="uv.normal">Normal</button>
+                <button data-uvchannel="roughness" data-i18n="uv.roughness">Roughness</button>
+                <button data-uvchannel="metallic" data-i18n="uv.metallic">Metallic</button>
+                <button data-uvchannel="ao" data-i18n="uv.ao">AO</button>
             </div>
-            <button id="btnExportUvWireframe" class="btn small">Export UV Guide PNG</button>
+            <button id="btnExportUvWireframe" class="btn small" data-i18n="uv.exportGuide">Export UV Guide PNG</button>
         </div>
         <p class="hint uv-hint hidden" id="uvHint"></p>
         <div class="uv-canvas-box">
@@ -500,6 +501,7 @@
     </div>
 </div>
 
+<script src="js/i18n.js"></script>
 <script src="js/viewer.js"></script>
 <script src="js/browser.js"></script>
 <script src="js/app.js"></script>

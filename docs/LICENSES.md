@@ -1,5 +1,7 @@
 # Third-party licences
 
+> 🇷🇺 Ниже — юридические тексты и таблица лицензий: они намеренно оставлены на языке оригинала, переводить их нельзя. Коротко по-русски: сам Meshwright — MIT (см. [LICENSE](../LICENSE)); PyMeshLab и pymeshfix — GPL-3 (важно при раздаче собранных бинарников, подробнее в разделе Copyleft); всё остальное — разрешительные лицензии.
+
 Meshwright itself is **MIT** (see [LICENSE](../LICENSE)). It builds on the work below — with thanks
 to every author. Versions are whatever `pip` installs; the in-app About panel shows exactly what is
 present on your machine.

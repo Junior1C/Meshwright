@@ -22,7 +22,7 @@
 
     const text = s => String(s == null ? '' : s).replace(/[&<>"']/g,
         c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    const num = n => Number(n).toLocaleString();
+    const num = n => I18N.num(n);
 
     /* ---------- choosing a machine ---------- */
     function fillMakers() {
@@ -35,19 +35,21 @@
         // A machine your own slicer knows about is almost certainly the one you print
         // on, so it is worth saying which those are rather than marking them cryptically.
         $('printerModel').innerHTML = mine.map(m =>
-            `<option value="${text(m.id)}">${text(m.model)}${m.installed ? ' — on this PC' : ''}</option>`).join('');
+            `<option value="${text(m.id)}">${text(m.model)}${m.installed ? T('print.onPc') : ''}</option>`).join('');
     }
 
     function describe(machine) {
         if (!machine) return '–';
         if (machine.technology === 'resin') {
             const pitch = machine.pixel_um;
-            return `${machine.resolution[0]} × ${machine.resolution[1]} screen · ${pitch} µm per pixel`
-                + ` · finest detail about ${(pitch * 2 / 1000).toFixed(3)} mm`
-                + ` · plate ${machine.build_mm.join(' × ')} mm`;
+            return T('print.resinSpec', {
+                x: machine.resolution[0], y: machine.resolution[1], p: pitch,
+                f: (pitch * 2 / 1000).toFixed(3), b: machine.build_mm.join(' × '),
+            });
         }
-        return `${machine.nozzle_mm} mm nozzle · finest detail about ${machine.nozzle_mm.toFixed(2)} mm`
-            + ` · plate ${machine.build_mm.join(' × ')} mm`;
+        return T('print.fdmSpec', {
+            n: machine.nozzle_mm, f: machine.nozzle_mm.toFixed(2), b: machine.build_mm.join(' × '),
+        });
     }
 
     function select(id) {
@@ -55,7 +57,7 @@
         $('printerSpec').textContent = describe(chosen);
         if (!chosen) return;
         const resin = chosen.technology === 'resin';
-        $('printerUnitLabel').textContent = resin ? 'Pixel (µm)' : 'Nozzle (mm)';
+        $('printerUnitLabel').textContent = resin ? T('print.pixel') : T('print.nozzle');
         $('printerUnit').value = resin ? chosen.pixel_um : chosen.nozzle_mm;
         $('printerUnit').step = resin ? 0.5 : 0.05;
         $('printerLayer').value = chosen.layer_mm;
@@ -64,28 +66,62 @@
 
     /* ---------- showing what came back ---------- */
     function clear() {
+        lastReport = null;
         const box = $('printResult');
         if (box) box.innerHTML = '';
     }
 
+    function verdictText(v) {
+        return {
+            'Prints as modelled': T('print.verdictOk'),
+            'Prints, with fragile detail': T('print.verdictFragile'),
+            'Some detail will be lost': T('print.verdictLost'),
+        }[v] || v;
+    }
+
+    function issueText(issue, report) {
+        const printer = report.printer || {};
+        if (issue.id === 'unprintable_detail' && report.missing_share != null) {
+            const share = (report.missing_share * 100).toFixed(1) + '%';
+            return {
+                title: T('print.issue.unprintable.t'),
+                detail: T('print.issue.unprintable.d', {
+                    n: num(issue.count), m: Number(printer.min_feature_mm).toFixed(3),
+                    b: printer.basis, s: share,
+                }),
+            };
+        }
+        if (issue.id === 'fragile_detail' && printer.fragile_below_mm != null) {
+            return {
+                title: T('print.issue.fragile.t'),
+                detail: T('print.issue.fragile.d', {
+                    n: num(issue.count), m: Number(printer.fragile_below_mm).toFixed(3),
+                }),
+            };
+        }
+        if (issue.id === 'too_big') return { title: T('print.issue.too_big.t'), detail: text(issue.detail) };
+        return { title: text(issue.title), detail: text(issue.detail) };
+    }
+
+    let lastReport = null;
+
     function show(report) {
+        lastReport = report;
         const box = $('printResult');
         const printer = report.printer;
         const verdictClass = !report.printable ? 'bad' : (report.issues.length ? 'warn' : 'good');
 
         const lines = [];
-        lines.push(`<div class="print-verdict ${verdictClass}">${text(report.verdict)}</div>`);
-        lines.push(`<p class="hint">Measured against ${text(printer.name)} — ${text(printer.basis)},`
-            + ` so the finest thing it can make is about ${printer.min_feature_mm.toFixed(3)} mm.</p>`);
+        lines.push(`<div class="print-verdict ${verdictClass}">${text(verdictText(report.verdict))}</div>`);
+        lines.push(`<p class="hint">${T('print.measured', { name: text(printer.name), basis: text(printer.basis), m: printer.min_feature_mm.toFixed(3) })}</p>`);
 
         if (report.wall) {
-            lines.push(`<dl class="stats"><dt>Thinnest wall</dt><dd>${report.wall.thinnest_mm.toFixed(3)} mm</dd>`
-                + `<dt>Typical wall</dt><dd>${report.wall.median_mm.toFixed(2)} mm</dd></dl>`);
+            lines.push(`<dl class="stats"><dt>${T('print.thinnest')}</dt><dd>${report.wall.thinnest_mm.toFixed(3)} mm</dd>`
+                + `<dt>${T('print.typical')}</dt><dd>${report.wall.median_mm.toFixed(2)} mm</dd></dl>`);
         }
 
         if (!report.issues.length) {
-            lines.push('<p class="hint">Every detail in this model is larger than this printer\'s '
-                + 'smallest feature. Nothing will be lost.</p>');
+            lines.push(`<p class="hint">${T('print.allFine')}</p>`);
         }
 
         box.innerHTML = lines.join('');
@@ -94,14 +130,14 @@
         const list = document.createElement('ul');
         list.className = 'issues print-issues';
         for (const issue of report.issues) {
+            const said = issueText(issue, report);
             const item = document.createElement('li');
             item.className = issue.severity;
             const where = issue.location
-                ? `<div class="loc">${num(issue.location.total)} spot${issue.location.total === 1 ? '' : 's'}`
-                  + ` · region ≈ ${issue.location.extent} mm · click to show them</div>`
+                ? `<div class="loc">${Tp('pl.spots', issue.location.total, { e: issue.location.extent })}${T('print.clickShow')}</div>`
                 : '';
-            item.innerHTML = `<div><div class="t">${text(issue.title)}</div>`
-                + `<div class="d">${text(issue.detail)}</div>${where}</div>`;
+            item.innerHTML = `<div><div class="t">${said.title}</div>`
+                + `<div class="d">${said.detail}</div>${where}</div>`;
             if (issue.location && window.viewer) {
                 item.classList.add('locatable');
                 item.addEventListener('click', () => {
@@ -120,12 +156,10 @@
             const fits = report.suggested_scale_fits;
             const note = document.createElement('p');
             note.className = 'hint print-advice';
-            const tall = report.suggested_height_mm ? ` — about ${report.suggested_height_mm} mm tall` : '';
+            const tall = report.suggested_height_mm ? T('print.scaleTall', { h: report.suggested_height_mm }) : '';
             note.innerHTML = fits === false
-                ? `Every detail would survive at <strong>${report.suggested_scale}×</strong> this size`
-                  + `${tall}, but that is larger than this printer's plate.`
-                : `Printed at <strong>${report.suggested_scale}×</strong> this size${tall}, every detail `
-                  + `would survive. Nothing has been changed — that is a size to print at, not an edit.`;
+                ? T('print.scaleNoFit', { s: report.suggested_scale, tall: tall })
+                : T('print.scaleFit', { s: report.suggested_scale, tall: tall });
             box.appendChild(note);
         }
 
@@ -133,9 +167,9 @@
         if (report.doubts && report.doubts.length) {
             const caution = document.createElement('div');
             caution.className = 'print-doubt';
-            caution.innerHTML = '<strong>Not confirmed.</strong> '
+            caution.innerHTML = `<strong>${T('print.doubt')}</strong> `
                 + report.doubts.map(d => text(d.charAt(0).toUpperCase() + d.slice(1)) + '.').join(' ')
-                + ' Repairing the model first makes this check exact.';
+                + ` ${T('print.doubtTail')}`;
             box.appendChild(caution);
         }
     }
@@ -146,7 +180,7 @@
         const button = $('btnPrintCheck');
         button.disabled = true;
         const previous = button.textContent;
-        button.textContent = 'Checking…';
+        button.textContent = T('print.checking');
         try {
             const resin = chosen.technology === 'resin';
             const unit = parseFloat($('printerUnit').value) || 0;
@@ -157,7 +191,7 @@
                 $('chkThorough').checked);
             if (!result || !result.success) {
                 $('printResult').innerHTML =
-                    `<div class="print-doubt">${text((result && result.error) || 'The check could not be made.')}</div>`;
+                    `<div class="print-doubt">${text((result && result.error) || T('print.noCheck'))}</div>`;
                 return;
             }
             show(result.report);
@@ -210,4 +244,13 @@
     });
 
     window.meshwrightPrinter = { clear, reload: load };
+
+    if (window.I18N) window.I18N.onChange(() => {
+        if (chosen) {
+            fillModels($('printerMaker').value);
+            $('printerModel').value = chosen.id;
+            select(chosen.id);
+        }
+        if (lastReport) show(lastReport);
+    });
 })();

@@ -1,655 +1,303 @@
-# Changelog
+# История изменений (RU)
 
-All notable changes to Meshwright. Format based on [Keep a Changelog](https://keepachangelog.com).
+Все заметные изменения Meshwright. Формат — по [Keep a Changelog](https://keepachangelog.com).
 
 ## [Unreleased]
 
-### Added
-- **Rings for wax casting.** An image-to-3D service will produce a ring in under a minute, and the
-  result looks right in a render and is almost never right on a finger: the bore is an oval, its size
-  is whatever the generator felt like, the inside edge is cut square, and the band is thin where
-  metal will not fill. Generic repair — including the auto-repair those services now ship — closes
-  holes and fixes normals, and will hand back a watertight, manifold, perfectly unwearable oval.
+### Добавлено
+- **Кольца под литьё в воске.** Сервис картинки-в-3D выдаст кольцо меньше чем за минуту, и на рендере результат выглядит верно, а на палец почти никогда не годится: посадка — овал, размер — какой генератор захотел, внутренняя кромка резана квадратом, а шинка тонка там, где металл не зальётся. Обычный ремонт — включая авточнилку самих сервисов, — закрывает дыры, правит нормали и отдаёт герметичный, многообразный, идеально неносибельный овал.
 
-  Meshwright now measures a ring the way a jeweller would and corrects it. Load it, set the finger
-  size and the minimum wall, press **Fix this ring**: the mesh is repaired, then handed to Blender
-  for a true, correctly sized comfort-fit bore and edges taken off without losing the engraving, and
-  comes back as an ordinary undoable state. On a test ring built oval on purpose — bore
-  16.40–17.90 mm, ISO 51.5 — that is 2.4 s to a watertight ring at exactly the size asked for.
+  Meshwright теперь меряет кольцо как ювелир и правит. Загрузите, задайте размер пальца и минимальную стенку, нажмите **«Починить это кольцо»**: сетка чинится, затем уходит в Blender под настоящую комфортную посадку верного размера и снятые кромки без потери гравировки — и возвращается обычным отменяемым состоянием. На тестовом кольце, нарочно построенном овалом (посадка 16,40–17,90 мм, ISO 51,5), — 2,4 с до герметичного кольца ровно просимого размера.
 
-  **Measuring happens here, and never guesses.** The finger axis is the principal axis carrying the
-  largest moment of inertia, which holds whatever angle the file was saved at. The bore is then read
-  by firing rays outward from it — reading vertex positions instead aliases badly, and a bore drawn
-  with 180 segments reports itself 4 mm out of round when it is nothing of the kind. A ring's size
-  is taken at its **narrowest** point, because that is where the finger meets it; averaging an oval
-  invents a size the ring does not have, and always a size too large.
+  **Меряется здесь и никогда не гадается.** Ось пальца — главная ось с самым большим моментом инерции: держится под любым углом сохранения файла. Посадка затем читается лучами наружу от неё: читать позиции вершин — значит словить алиасинг, и посадка на 180 сегментах намерит себя некруглой на 4 мм, будучи ни при чём. Размер кольца берётся в **самом узком** месте: там встреча с пальцем; усреднение овала выдумывает размер, которого у кольца нет, — и всегда в большую сторону.
 
-  **Correcting happens in Blender**, because two of the operations have no good answer in a triangle
-  mesh. Rounding a sharp edge by voxel filtering blurs away the 0.3 mm engraving that casting
-  guidelines ask for, and going fine enough to avoid that would take 1.4 billion voxels for one ring.
-  Blender's angle-limited bevel rounds the hard corners and leaves flat faces and shallow detail
-  alone — measured on a ring with 0.3 mm grooves, every groove was still 0.300 mm deep afterwards.
-  The ring is sent standing on +Z and centred, so the script works in known coordinates, and it comes
-  back where it was: measured movement, 0.000 mm.
+  **Правится в Blender**: две операции треугольной сетке толком недоступны. Скруглить острую кромку воксельной фильтрацией — замылить гравировку 0,3 мм, которую просят литейные гайды, а мельче ради её сохранения — 1,4 миллиарда вокселей на одно кольцо. Фаска Blender с лимитом по углу скругляет жёсткие углы, а плоские места и мелочь неглубокую не трогает: намеряно на кольце с канавками 0,3 мм — каждая осталась глубиной ровно 0,300 мм. Кольцо едет стоящим на +Z и центрированным — скрипт работает в известных координатах, — а возвращается куда было: замеренный сдвиг 0,000 мм.
 
-  What it will not do quietly: cutting a bore can only take metal away, so where the generator's bore
-  was already wider than the size asked for it stays oval — and the panel says so, with the smallest
-  size at which it does come out truly round. A model that is solid through the middle is refused
-  rather than handed an invented finger size. And when shrinkage compensation is set, the panel
-  reports the size as printed **and** the size once cast, separately, because the model on screen is
-  the wax and not the ring.
+  Чего молча не будет: расточка только убирает металл, так что где генераторова посадка уже шире просимой — останется овалом, и панель так скажет, с наименьшим размером, при котором выходит по-настоящему кругло. Модель, сплошная посередине, отклоняется, а не получает выдуманный размер пальца. А при заданной усадке панель показывает размер при печати **и** размер после литья отдельно: на экране восковка, а не кольцо.
 
-  Every figure it judges against is published and sourced in `docs/PRD-RINGS.md`: 1.0 mm for a ring
-  band, 0.35 mm as the lost-wax floor, ISO 8653 for sizes.
+  Каждая цифра, по которой он судит, опубликована с источниками в `docs/PRD-RINGS.md`: 1,0 мм на шинку кольца, 0,35 мм как пол литья в воске, ISO 8653 на размеры.
 
-  The card is **collapsed by default** and remembers being opened. This is a small audience, and
-  nobody printing miniatures should have ring sizes in their way.
+  Карточка **по умолчанию свёрнута** и помнит открытие. Аудитория мелкая, и печатающим миниатюры размеры колец мешаться не должны.
 
-- **Blender's location is now a setting.** A status line and **Find Blender…** in the jewellery
-  panel; the path is checked before it is stored, and a configured path beats `MESHWRIGHT_BLENDER`,
-  which beats searching. Without Blender the fix is disabled with a reason that says what to do, and
-  measuring still works.
-
-- `docs/PRD-RINGS.md` — the research behind all of this: what a wearable ring needs, what the
-  casting houses publish, what already exists, and what was measured rather than assumed.
+- **Место Blender теперь настройка.** Строка статуса и **«Найти Blender…»** на панели ювелирки; путь проверяется до сохранения, заданный путь бьёт `MESHWRIGHT_BLENDER`, а тот — поиск. Без Blender починка недоступна с причиной, говорящей что делать, а замеры работают.
+- `docs/PRD-RINGS.md` — исследования за всем этим: что нужно носимому кольцу, что публикуют литейки, что уже существует и что намеряно, а не предположено.
 
 
 ## [1.6.0] - 2026-09-22
 
-### Added
-- **Right-click a piece and work on that piece.** A model made of separate pieces usually needs
-  different things done to different parts of it — the figure kept and the base thinned, two halves
-  fused into one solid, an arm moved clear of the body before it is printed — and every one of those
-  used to go through the panel on the right, which meant finding the piece in a list instead of
-  pointing at it.
+### Добавлено
+- **Клик правой кнопкой по куску — работа с этим куском.** Модель из отдельных кусков обычно хочет разного разным частям: фигуру оставить, основание утоньшить, две половины слить в одно тело, руку отвести от тела перед печатью, — а всё это шло через панель справа: искать кусок в списке вместо указать на него.
 
-  Right-clicking now opens a menu built around what is under the cursor: **Move**, **Reduce detail**
-  (keep 50%, 25% or 10%), **Merge into one solid**, **Keep only these**, **Remove**, and the
-  selection and view commands. The menu names the pieces it will act on at the top, so the scope of
-  every entry is stated rather than assumed, and right-clicking a piece that is not selected selects
-  it first — acting on something other than the thing you just pointed at is what nobody expects.
-  Shift-right-click adds to the selection, the way shift-click already does.
+  Клик правой теперь открывает меню вокруг того, что под курсором: **Двигать**, **Упростить** (оставить 50%, 25% или 10%), **Слить в одно тело**, **Оставить только эти**, **Удалить**, плюс команды выбора и вида. Меню называет куски, которых коснётся, сверху — область каждого пункта заявлена, а не подразумевается; клик правой по невыбранному куску сначала выбирает его: действовать не с тем, на что только указали, не ждёт никто. Shift+правая добавляет к выбору, как shift+клик уже делал.
 
-- **Alt+drag rubber-bands a box over the viewport** and selects every piece inside it; holding Shift
-  as well adds them to what is already chosen rather than replacing it. Picking pieces one at a time
-  is fine for three and hopeless for the three hundred a scan or a generated model routinely splits
-  into.
+- **Alt+drag тянет рамку по вьюпорту** и выбирает каждый кусок внутри; Shift вдобавок добавляет к выбранному, а не заменяет. Выбирать по одному нормально для трёх и безнадёжно для трёхсот, на которые скан или сгенерированная модель обычно распадается.
 
-  A piece counts as caught the moment any one of its points lands in the box — the "touch" rule a
-  modelling program uses — because a band that demanded a whole piece be enclosed would refuse
-  everything on a zoomed-in model, which is when one is most wanted. The search stops at the first
-  point found inside each piece, so the usual case costs almost nothing.
+  Кусок считается пойманным, как только хоть одна его точка легла в рамку, — правило «касания» моделирующих программ: рамка, требующая целый кусок внутри, отказывала бы во всём на приближенной модели — когда нужнее всего. Поиск останавливается на первой найденной внутри точке каждого куска — обычный случай почти бесплатен.
 
-  Alt is what keeps the gesture out of the way: a plain drag still orbits and a plain click still
-  picks, both of which are used far more often. Releasing over nothing says so rather than silently
-  clearing the selection, a band only a few pixels across is treated as a slipped click, and Escape
-  abandons one mid-drag.
+  Alt и держит жест в стороне: простое перетаскивание всё ещё крутит, простой клик всё ещё выбирает — оба используются куда чаще. Отпускание над пустотой так и говорит, а не молча чистит выбор; полоса в пару пикселей считается сорвавшимся кликом; Escape бросает на середине.
 
-- **A drag handle for moving pieces.** **Move** puts a translate gizmo on the selection; dragging
-  shifts those pieces in the viewport and releasing commits the move. The viewport holds one mesh
-  rather than one object per piece, so this shifts the vertices that piece's faces use — safe
-  precisely because a piece is a connected component and shares no vertex with any other. The
-  vertex list is worked out once when the drag begins rather than per frame, which on a
-  half-million-face model is the difference between dragging and watching a slideshow. Escape
-  cancels and puts the model back as it was.
+- **Ручка-перетаскивание для движения кусков.** **«Двигать»** ставит гизмо перемещения на выбор; перетаскивание сдвигает эти куски во вьюпорте, отпускание фиксирует сдвиг. Вьюпорт держит одну сетку, а не объект на кусок, — двигаются вершины, которые используют грани куска; безопасно ровно потому, что кусок — связный компонент без общих вершин с другими. Список вершин считается раз, когда перетаскивание начинается, а не на кадр: на модели в полмиллиона граней это разница между тасканием и слайд-шоу. Escape отменяет и возвращает как было.
 
-- **Merging is a boolean union, not a concatenation.** Two halves that overlap come out as a single
-  watertight body a slicer can fill. Pieces that do not touch cannot be fused by any amount of
-  arithmetic, and the result says how many separate bodies are left rather than implying a join that
-  is not there.
+- **Слияние — булево объединение, а не конкатенация.** Две перекрывающиеся половины выходят одним герметичным телом, которое слайсер зальёт. Не касающиеся куски не сплавит никакая арифметика — итог говорит, сколько отдельных тел осталось, а не подразумевает соединения, которого нет.
 
-- **Reducing one piece leaves the others at full detail**, which is what makes it useful for a base
-  or a support block under a figure that must keep every triangle it has.
+- **Упрощение одного куска оставляет остальные в полной детализации** — на этом и держится польза: основание или поддержка под фигурой, обязанной держать каждый треугольник.
 
-  A translation changes no topology, so a moved piece keeps the texture coordinates it had instead
-  of having them re-projected onto geometry that has just been dragged somewhere else.
+  Сдвиг топологию не меняет: сдвинутый кусок держит текстурные координаты, какие были, вместо перепроекции на только что утащенную геометрию.
 
 
-### Added
-- **A file with more than one object in it now asks which ones you want.** Meshwright has always
-  opened a model by welding every object in the file into one mesh — right for a figure saved on its
-  own, wrong for anything that was set up for rendering. A Blender project arrives with its studio
-  floor and its reflection cards fused to the model, and no amount of work afterwards can separate
-  them again.
+### Добавлено
+- **Файл больше чем с одним объектом теперь спрашивает, что нужно.** Meshwright всегда открывал модель, сваривая каждый объект файла в одну сетку, — верно для отдельно сохранённой фигурки, неверно для всего, что готовили под рендер. Проект Blender приезжает с полом студии и отражателями, приплавленными к модели, и никакая работа после их уже не отделит.
 
-  Opening such a file now lists what is in it first — name, triangle count and size, grouped by the
-  collections the author made — and only what you keep is welded. In one real project that is 108
-  objects in six groups, and the studio goes away in a single click.
+  Открытие такого файла теперь перечисляет содержимое — имя, треугольники и размер, по сделанным автором коллекциям, — и сваривается только отмеченное. В одном реальном проекте это 108 объектов в шести группах, и студия уходит в один клик.
 
-  Listing is deliberately cheap, which is what makes asking practical: a Blender project is read in
-  under two seconds where exporting it takes minutes, and a glTF is read from its own header, so a
-  426 MB file is listed without touching the 426 MB.
+  Перечень намеренно дёшев — спрашивать не накладно: проект Blender читается меньше чем за две секунды, где экспорт — минуты, а glTF читается из собственного заголовка: файл на 426 МБ перечисляется, не трогая эти 426 МБ.
 
-  **Nothing is guessed at.** Objects the file itself marks as not-for-render start unticked — a rig's
-  controller widgets say so in the file — and everything else starts ticked. That restraint is the
-  point: the project that prompted this names its 200 x 200 ground plane "Studio ground - excluded
-  from model validation" and carries no flag at all to say so, while a genuine floor tile in a
-  printed diorama would look identical to any rule that tried to be clever. The grouping does the
-  work instead.
+  **Ничего не угадывается.** Объекты, которые сам файл метит как не-для-рендера, изначально сняты — контроллеры рига так про себя и говорят, — а всё остальное изначально отмечено. Сдержанность — суть: проект-виновник называет свою землю 200×200 «Studio ground — excluded from model validation» и не несёт ни одного флага об этом, а настоящая плитка пола в печатной диораме выглядела бы ровно так же для любого хитрого правила. Вместо правил работает группировка.
 
-  A file that holds one object is opened as before, with no question asked. A choice that cannot be
-  honoured now fails and says so, rather than falling through to a loader that cannot filter and
-  quietly handing back the whole scene — which would have been the one failure nobody would notice.
+  Файл с одним объектом открывается как раньше, без вопросов. Выбор, который нельзя исполнить, теперь падает и говорит, а не проваливается в загрузчик без фильтра и не отдаёт молча всю сцену — а это был бы единственный провал, которого никто не заметил бы.
 
-### Changed
-- **Blender projects no longer import what Blender itself would not render.** The export now passes
-  `use_visible` and `use_renderable`, so a rig's controller widgets and anything switched off in the
-  outliner stay behind. This is the half of the problem the file answers on its own; the other half
-  is the picker above.
+### Изменено
+- **Проекты Blender больше не импортируют то, чего не стал бы рендерить сам Blender.** Экспорт теперь идёт с `use_visible` и `use_renderable`: контроллеры рига и выключенное в аутлайнере остаются за бортом. Это половина проблемы, которую файл отвечает сам; вторая половина — выбор выше.
 
 
 ## [1.5.0] - 2026-09-21
 
-### Added
-- Import Blender `.blend` projects through an installed Blender, detected automatically or configured with `MESHWRIGHT_BLENDER`. Imports the active scene through a temporary GLB with modifiers, transforms, UVs, and compatible materials; leaves the source project unchanged.
-- Select disconnected pieces directly in the viewport. Click selects one piece, Shift-click adds or removes it, and clicking empty space clears the selection. Red highlights and the Separate pieces list stay synchronized with the existing removal controls.
-- Tests covering Blender round-trip import, import failures, viewport ray picking, selection toggling, and gesture handling.
+### Добавлено
+- Импорт проектов Blender `.blend` через установленный Blender: находится сам или задаётся через `MESHWRIGHT_BLENDER`. Активная сцена импортируется через временный GLB с модификаторами, трансформациями, УФ и совместимыми материалами; исходный проект не трогается.
+- Выбор несвязанных кусков прямо во вьюпорте. Клик выбирает один кусок, Shift+клик добавляет/убирает, клик по пустому месту снимает выбор. Красная подсветка и список «Отдельные куски» синхронны с существующими кнопками удаления.
+- Тесты: сквозной импорт туда-обратно в Blender, падения импорта, выбор лучом во вьюпорте, переключение выбора, обработка жестов.
 
-### Fixed
-- Preserve piece highlights when changing viewport detail.
-- Synchronize application and npm package versions.
+### Исправлено
+- Подсветка кусков переживает смену детализации вьюпорта.
+- Версии приложения и npm-пакета синхронизированы.
 
 ## [1.4.0] - 2026-09-21
 
-### Added
-- **Meshwright checks a model against the printer it is going to.** Pick your machine from the
-  panel — 216 of them, resin and filament, from Elegoo, Anycubic, Phrozen, Creality, Bambu Lab,
-  Prusa and two dozen other makers — and Meshwright measures whether the detail in the model is
-  something that machine can physically make. What is too fine is listed, counted, and can be
-  clicked to light up on the model. Nozzle, pixel pitch and layer height can all be overridden,
-  because a nozzle is a consumable and the owner knows what is fitted.
+### Добавлено
+- **Meshwright проверяет модель против принтера, на котором печатать.** Выберите машину на панели — их 216, смола и филамент: Elegoo, Anycubic, Phrozen, Creality, Bambu Lab, Prusa и ещё два десятка марок, — и Meshwright измерит, осилит ли машина мелочь физически. Слишком тонкое перечисляется, считается и кликается — подсвечивается на модели. Сопло, шаг пикселя и слой перебиваются: сопло — расходник, а что стоит — знает владелец.
 
-  It **reports and points; it never changes the model.** What to do about a detail that is too fine
-  has more than one right answer — print it bigger, print it on the other machine, thicken it, or
-  accept the loss — and that is the owner's call. Where detail would be lost, it works out the size
-  at which nothing would be, and says so in millimetres as well as in multiples ("at 8× this size,
-  about 7.9 mm tall, every detail would survive"), which matters because most generated models
-  arrive saved at about a millimetre tall.
+  Он **сообщает и указывает; модель не меняет.** Что делать со слишком тонкой мелочью — ответов больше одного: печатать крупнее, на другой машине, утолщать или смириться с потерей, — решать владельцу. Где мелочь потеряется — считается размер, при котором не теряется ничего, и говорится в миллиметрах и в кратах («в размере 8×, высотой около 7,9 мм, уцелеет всё») — важно, потому что сгенерированные модели обычно приходят ростом около миллиметра.
 
-  The two numbers that decide are not the same on the two kinds of machine. A resin printer is
-  limited by its screen — an Elegoo Mars 4 Ultra is 153.4 mm across 8520 pixels, so one pixel is
-  18 µm and about two of them is the finest thing it can cure. A filament printer is limited by its
-  nozzle, which cannot lay a line narrower than itself. The same model can therefore be perfect on
-  one and hopeless on the other, and now says which.
+  Две решающие цифры на двух типах машин разные. Смола упирается в экран: у Elegoo Mars 4 Ultra 153,4 мм на 8520 пикселей — пиксель 18 мкм, а мельче всего запекается примерно два. Филамент упирается в сопло: уже себя не положит. Одна модель потому на одном идеальна, на другом безнадёжна, — теперь говорится, на каком.
 
-  **Nothing is asserted unless two independent measurements agree.** Each layer is sliced and drawn
-  at the printer's own resolution, and morphological opening removes exactly what the machine cannot
-  lay down — that measurement needs no surface normals and no watertight mesh, so it decides.
-  Separately, a ray is fired into the surface at every face to measure the wall there; with Intel
-  Embree behind it that is 336,780 exact measurements in 0.4 s, and on a sphere of known thickness
-  10.000 mm it returns 10.000. But it is only correct while the surface faces the right way, and on
-  one real 694,000-face model with inconsistent winding it read a uniform 0.24 mm wall through a
-  solid figure. So it is never allowed to decide anything alone: on a mesh whose winding or
-  watertightness is in doubt its findings are withheld and the panel says why, and where the two
-  measurements disagree that disagreement is itself reported. A check that quietly guesses is worse
-  than none — it sends someone to a six-hour print.
+  **Ничего не утверждается, пока не сошлись два независимых замера.** Каждый слой режется и рисуется в родном разрешении принтера, морфологическое открытие убирает ровно то, что машина не положит, — этому замеру не нужны ни нормали, ни герметичность, так что решает он. Отдельно в поверхность у каждой грани пускается луч замера стенки; за Intel Embree это 336 780 точных замеров за 0,4 с, а на сфере известной толщины 10,000 мм он возвращает 10,000. Но он прав, только пока поверхность смотрит куда надо, а на одной реальной модели на 694 000 граней с рваным обходом он намерил ровную стенку 0,24 мм сквозь сплошную фигуру. Поэтому решать в одиночку ему не дают: на сетке с сомнительным обходом или герметичностью его находки скрываются, панель говорит почему, а где замеры расходятся — само расхождение и сообщается. Проверка, которая молча гадает, хуже никакой: она отправляет на шестичасовую печать.
 
-  The table is embedded, so it works on a PC with no slicer installed; where one *is* installed its
-  machines are offered too, read from its own configuration, because those are the printers that
-  person actually owns. Every figure in the table is a published specification, and any of them can
-  be typed over for a machine that is not listed.
+  Таблица вшита — работает и без слайсера; где слайсер *есть*, его машины предлагаются тоже, из его же конфига, — на них человек и печатает. Каждая цифра в таблице — из опубликованных характеристик, любую можно перебить под машину, которой в списке нет.
 
-- **Meshwright browses for its own models, and shows you what they are.** **Open model** no longer
-  hands you the Windows dialog, where every 3D file is the same blank icon and the only clue is the
-  filename. It opens Meshwright's own browser: highlight a file and it draws the model, and reports
-  the format, size, triangle count, dimensions, whether it carries textures, and roughly how long it
-  will take to open. Pictures also fill in beside the rows, so a folder can be read at a glance, and
-  the files you opened before are one click away under **Recent**.
+- **Meshwright сам ходит за моделями и показывает, что это.** **«Открыть модель»** больше не отдаёт диалог Windows, где каждый 3D-файл — одинаковая пустая иконка, а подсказка одна — имя. Открывается собственный браузер: подсветите файл — нарисует модель и доложит формат, размер, треугольники, габариты, текстуры и сколько примерно открывать. Картинки подтягиваются рядом со строками — папка читается взглядом, а открытое раньше — в шаге под **«Недавние»**.
 
-  Windows cannot do this itself. It draws 3D thumbnails through Microsoft's 3D Viewer, which is not
-  part of Windows 11 any more; on a normal machine nothing is registered to preview STL, GLB, glTF,
-  PLY, 3MF or OFF, which is why the standard Open box shows a row of identical icons.
+  Сам Windows так не умеет. Миниатюры 3D он рисует через Microsoft 3D Viewer, которого в Windows 11 больше нет; на обычной машине превью STL, GLB, GLTF, PLY, 3MF и OFF регистрировать некому — вот стандартный диалог и показывает ряд одинаковых иконок.
 
-  Nothing is loaded to make a picture. Each file is sampled — at most a few hundred thousand
-  triangles read straight out of it — and the sample is splatted into a small depth-and-normal image
-  and lit, so the cost follows the sample rather than the model: a 249 MB, five-million-face STL is
-  drawn in about 0.7 s and a 67 MB GLB in about 0.2 s, against the 7.7 s that actually opening that
-  GLB takes. Pictures are kept in `%LOCALAPPDATA%\Meshwright\previews`, so a folder is instant the
-  second time, and the file's own thumbnail is used when it has one, as slicer-written 3MFs do.
+  Картинка не требует загрузки. Каждый файл семплируется — читается напрямую не больше пары сотен тысяч треугольников — и семпл брызгается в мелкую картинку глубины-и-нормалей со светом: цена следует за семплом, а не за моделью. STL на 249 МБ и пять миллионов граней рисуется около 0,7 с, GLB на 67 МБ — около 0,2 с против 7,7 с настоящего открытия этого GLB. Картинки лежат в `%LOCALAPPDATA%\Meshwright\previews` — второй раз папка мгновенна; где у файла своя миниатюра (как у 3MF от слайсера) — берётся она.
 
-  Numbers are the file's own, or they are marked: an STL's dimensions come from every triangle in
-  it, a glTF's from what it declares, and where a file is too large to measure exactly the size is
-  shown with a `≈`. Formats that cannot be sampled cheaply — FBX above 64 MB, COLLADA, 3DS, a very
-  large 3MF — report their facts and say the picture comes once the model is open.
+  Числа — собственные у файла или помеченные: габариты STL — по всем его треугольникам, glTF — по заявленному, а где файл слишком велик для точного замера — размер с `≈`. Форматы, которые дёшево не семплируются — FBX тяжелее 64 МБ, COLLADA, 3DS, очень большой 3MF, — докладывают факты и говорят, что картинка будет после открытия.
 
-  It is meant to survive what a real disk holds. A damaged file is explained rather than drawn, and
-  a file that claims more data than it contains is refused instead of read: nothing is
-  memory-mapped, because walking off the end of a mapped file ends the process rather than raising.
-  A folder Windows will not open says so, and is not reported as deleted; a file kept in the cloud
-  by OneDrive is left alone rather than quietly downloaded; drives are read from the list Windows
-  already holds, so a disconnected network drive cannot stall the dialog. Drawing pictures in the
-  background always gives way to whatever you are waiting for, so navigation stays immediate.
+  Рассчитано на живой диск. Повреждённый файл объясняется, а не рисуется; файл, заявляющий больше данных, чем содержит, отклоняется, а не читается: ничего не отображается в память: выход за конец отображённого файла убивает процесс, а не исключение. Папка, которую Windows не открывает, так и говорит и «удалённой» не притворяется; файл, висящий в облаке OneDrive, оставляется в покое, а не скачивается молча; диски читаются из списка, который держит Windows, — отвалившийся сетевой диск диалог не вешает. Фоновые картинки всегда уступают тому, чего вы ждёте, — навигация мгновенна.
 
-  The Windows dialog is still one click away, drag-and-drop is unchanged, and
-  <kbd>Ctrl</kbd>+<kbd>O</kbd> opens the new browser.
-- **A real Windows program and installer.** `packaging\build.ps1` freezes Meshwright into
-  `Meshwright.exe` (PyInstaller) and wraps it in `Meshwright-Setup-<version>.exe` (Inno Setup), so a
-  PC needs no Python, no `install.bat` and no terminal. It installs per user with no administrator
-  prompt, adds Start-menu and desktop shortcuts and a proper uninstaller, and installs Microsoft's
-  WebView2 runtime only if it is missing. See `packaging/README.md`.
+  Диалог Windows — в одном клике, перетаскивание без изменений,
+  <kbd>Ctrl</kbd>+<kbd>O</kbd> открывает новый браузер.
+- **Настоящая Windows-программа с установщиком.** `packaging\build.ps1` замораживает Meshwright в `Meshwright.exe` (PyInstaller) и заворачивает в `Meshwright-Setup-<version>.exe` (Inno Setup): машине не нужны ни Python, ни `install.bat`, ни терминал. Ставится на пользователя без админского запроса, кладёт ярлыки в меню и на стол и нормальный деинсталлятор, а WebView2 от Microsoft ставит, только если не хватает. См. `packaging/README.md`.
 
-  The build proves the result before it ships one. The frozen program carries a `--selftest` that
-  runs 20 checks — the window stack, both helper processes, every mesh engine, texture processing,
-  the file browser's previews, the printer check, three export formats and the MCP server — and `build.ps1` runs it
-  with nothing but Windows on `PATH`, failing the build if anything is wrong. Each step asserts *which* engine did the work,
-  because a packaging failure is quiet: a helper that cannot start does not raise, retopology just
-  uses another engine and returns a perfectly good-looking mesh.
+  Сборка доказывает итог, прежде чем отгрузить. Замороженная программа несёт `--selftest` из 20 проверок — стек окна, оба вспомогательных процесса, каждый движок сеток, обработка текстур, превью браузера файлов, проверка принтера, три формата экспорта и MCP-сервер, — а `build.ps1` гоняет его вообще без ничего в `PATH` и роняет сборку на любой неправильности. Каждый шаг утверждает, *какой* движок сделал работу: тихий провал упаковки не падает с исключением — не стартовавший помощник не падает, ретопология просто едет другим движком и отдаёт прекрасную на вид сетку.
 
-  Two editions: **full**, and **lite**, which leaves out PyMeshLab and pymeshfix (both GPL-3) for
-  anyone who would rather not distribute those. A `THIRD_PARTY_NOTICES.txt` is generated from what
-  was actually bundled, with each licence's text, because MIT and BSD licences require it to travel
-  with a binary.
-- `Meshwright.exe --mcp` runs the MCP server from the installed program, and `--version` and
-  `--selftest` are available from the command line.
-- **A missing WebView2 runtime is now explained.** pywebview does not fail when the runtime is
-  absent: it silently falls back to Internet Explorer's engine, which cannot run the interface, and
-  the person gets a broken blank window and no message. The program now asks pywebview which
-  renderer it chose before opening anything and, if it is the fallback, says what is missing and
-  offers to open the download page. A failed start-up is likewise written to
-  `%LOCALAPPDATA%\Meshwright\startup-error.txt` and shown in a dialog rather than vanishing, since
-  a windowed program has no console to print to.
-- **Reliable model loading progress and global visual feedback.** Selecting or dropping a file now
-  immediately activates loading feedback on the client side, rather than waiting for an engine roundtrip.
-  A glowing amber-to-cyan progress bar pinned to the top of the 3D viewport animates in synchronization
-  with background jobs, accompanied by an animated loading spinner and active status prompt in the
-  empty workspace. The Python-to-WebView bridge dispatches UI events through a dedicated non-blocking
-  background queue, eliminating WebView2 semaphore deadlocks and dropped events.
-- **Continuous 2D UV island boundary contours.** The 2D UV Island Unfold viewer now extracts true
-  closed 2D boundary loops directly in UV space, rendering crisp continuous outlines against active
-  PBR texture channels rather than disjoint floating specks.
-- **A cup who waits with you.** Opening a model or writing one out sends a hand-drawn cup strolling
-  along the bottom of the window; he leaves when the work is done. Repairs, reductions, unwraps and
-  previews keep their progress toast and nothing more — he is on screen for the waits that are about
-  the file itself, because a character who turns out for everything is scenery rather than a signal.
-  Click him and he stops, under a speech balloon, to ask whether you would like to buy Vlad a coffee.
+  Два издания: **полное** и **облегчённое** — без PyMeshLab и pymeshfix (оба GPL-3), кому раздавать их не хочется. `THIRD_PARTY_NOTICES.txt` генерируется из реально упакованного, с текстом каждой лицензии: лицензии MIT и BSD требуют ехать с бинарником.
+- `Meshwright.exe --mcp` гоняет MCP-сервер из установленной программы, а `--version` и `--selftest` доступны из командной строки.
+- **Отсутствующий WebView2 теперь объясняется.** pywebview не падает без рантайма: молча откатывается на движок Internet Explorer, который интерфейс не тянет, — человек получает битое пустое окно без сообщения. Программа теперь спрашивает у pywebview, какой рендерер тот выбрал, до открытия чего-либо, а при запасном говорит, чего не хватает, и предлагает открыть страницу загрузки. Неудавшийся старт пишется в `%LOCALAPPDATA%\Meshwright\startup-error.txt` и показывается диалогом, а не исчезает: у оконной программы консоли для печати нет.
+- **Надёжный прогресс загрузки моделей и глобальная визуальная обратная связь.** Выбор или сброс файла теперь включает обратную связь сразу на клиенте, не дожидаясь кругооборота в движок. Светящаяся янтарно-циановая полоса, пришпиленная к верху 3D-вьюпорта, анимируется синхронно с фоновыми работами, рядом анимированный спиннер загрузки и активный статусный промпт в пустом рабочем месте. Мост Python→WebView отдаёт события UI через выделенную неблокирующую фоновую очередь: дедлоков семафоров WebView2 и потерянных событий больше нет.
+- **Непрерывные 2D-контуры островов УФ.** 2D-вью развёртки УФ теперь извлекает настоящие замкнутые 2D-петли границ прямо в УФ-пространстве: чёткие непрерывные абрисы на фоне активных PBR-каналов вместо разрозненных плавающих точек.
+- **Чашка, с которой ждать.** Открытие модели или запись отправляют рисованную чашку гулять по низу окна; как работа сделана — уходит. Ремонты, упрощения, развёртки и превью держат свой тост прогресса и ничего больше: она на экране на ожиданиях про сам файл, потому что персонаж, выходящий по любому поводу, — обои, а не сигнал. Кликните её — остановится под речевым облаком и спросит, не хотите ли купить Владу кофе.
 
-  He is animated from an eight-frame walk sheet cut by `scripts/build_walk_frames.py`, which lifts
-  the background without hollowing out a character drawn in white, checks the cycle order against
-  the drawing, and lines every pose up on the ground so he walks rather than skates. The order is
-  read from how the body rises and falls — a walk bounces once per step, twice over eight drawings —
-  because foot positions do not survive measurement: the lifted foot is clear of the ground, so a
-  band across the bottom of a pose finds one foot rather than two.
+  Она анимирована восьмикадровым листом ходьбы, который режет `scripts/build_walk_frames.py`: поднимает фон, не выедая нарисованного белым персонажа, сверяет порядок цикла с рисунком и ставит каждую позу на землю — идёт, а не скользит. Порядок читается по подъёму и падению тела — ходьба подпрыгивает раз на шаг, дважды на восемь рисунков, — потому что позиции ног замер не переживает: поднятая нога чиста от земли, так что полоса по низу позы находит одну ногу вместо двух.
 
-  He is drawn in colour on a transparent sheet, walks at twelve frames a second, and is timed by
-  his stride rather than by the clock — `PX_PER_CYCLE` sets how much ground two steps cover and
-  every journey's duration is derived from the distance, so he does not skate on a wide window. He
-  keeps walking for as long as the work takes rather than stopping off-screen after one crossing,
-  and a job that starts while he is walking out turns him round from where he stands instead of
-  snapping him back to the far edge. The speech balloon closes on a click elsewhere, on `Esc`, or
-  by itself after seven seconds, and he carries on walking when it does.
+  Она нарисована в цвете на прозрачном листе, идёт на двенадцати кадрах в секунду и меряется шагом, а не часами: `PX_PER_CYCLE` задаёт, сколько земли покрывают два шага, а длительность каждого пути выводится из расстояния — не скользит на широком окне. Идёт, пока идёт работа, а не останавливается за экраном после одного прохода; работа, стартовавшая пока она уходит, разворачивает её с места, где стоит, а не швыряет обратно на дальний край. Речевое облако закрывается кликом мимо, `Esc` или само через семь секунд — а она идёт дальше, когда оно закроется.
 
-  The hop on each step is in the drawings, not the stylesheet: the cutter aligns every pose on the
-  feet, which keeps the 35px of rise and fall the artist drew while planting him on one ground
-  line. A CSS bob on top runs at its own phase, and two bounces that disagree read as a judder — so
-  the layer that used to bob now only leans.
+  Подскок на шаге — в рисунках, не в стилях: резчик ровняет каждую позу по ногам, сохраняя нарисованные 35px подъёма и падения и ставя на одну линию земли. CSS-качание сверху идёт в своей фазе, а два несогласованных баунса читаются дёрганьем — так что слой, который качался, теперь только кренится.
 
-### Changed
-- The version number now lives in one file, `engine/version.py`. The About panel, the MCP server
-  (which had been reporting `1.0.0`) and the installer all read it.
+### Изменено
+- Номер версии теперь живёт в одном файле, `engine/version.py`. Его читают панель About, MCP-сервер (сообщавший `1.0.0`) и установщик.
 
-### Fixed
-- **Models from glTF, GLB and FBX arrived lying on their back.** Meshwright works in Z-up, as every
-  slicer and build plate does, but glTF and GLB *mandate* Y-up in their specification and FBX writes
-  its own answer into the file — and nothing was reading either. A figure generated in ComfyUI or
-  Meshy therefore came in a quarter turn onto its back and stayed that way: its height was reported
-  as its depth, "Unusual scale" measured the wrong side, and "Rest on build plate" stood it on its
-  shoulder. It is now turned upright on the way in, and turned back on the way out, so a GLB written
-  by Meshwright is Y-up as the format requires and opening it again returns the same model rather
-  than one rotated a further quarter turn.
+### Исправлено
+- **Модели из glTF, GLB и FBX приезжали лёжа на спине.** Meshwright работает в Z-вверх, как каждый слайсер и стол, а glTF и GLB *mandативно* Y-вверх по своей спеке, FBX пишет свой ответ в файл — и ни то ни другое ничего не читало. Фигурка из ComfyUI или Meshy приезжала на четверть оборота на спину и так оставалась: высота докладывалась глубиной, «Странный масштаб» мерял не ту сторону, а «Положить на стол» ставило на плечо. Теперь разворачивается вверх на входе и обратно на выходе: GLB от Meshwright — Y-вверх, как требует формат, а повторное открытие возвращает ту же модель, а не повёрнутую ещё на четверть.
 
-  Only files that *say* which way is up are touched: glTF and GLB always, FBX according to its own
-  header, as read by ufbx. OBJ, PLY, OFF and 3DS record nothing about orientation, and guessing from
-  the shape of a model would stand some up and lay others down with no way to tell those cases
-  apart, so they are left exactly as they are — as are STL and 3MF, which are printing formats and
-  Z-up already. The file browser's previews follow the same rule from the same place
-  (`engine/axes.py`), so a picture is a promise about how the model will actually open.
-- **Decimate and Uniform failed with "Retopology made no change" when MeshLab was missing.** PyMeshLab
-  is optional — the installer carries on without it if it will not install, and the lite edition leaves
-  it out — but nothing told the interface, so choosing either method produced a message that named
-  nothing and suggested nothing. They now say that MeshLab is needed, which copy of Meshwright lacks
-  it, and to use Smart retopology instead. The README had claimed absent engines are "simply not
-  offered"; that was not true and now reads as it is.
-- **The last-resort repair moved and rescaled the model.** When every other engine has failed, repair
-  rebuilds the surface from a solid voxel grid ("Force watertight", on by default). trimesh returns
-  that surface in *voxel index space*, and the result was used as it stood: a 40 mm sphere came back
-  151 units across and centred on (75, 75, 75). It went unnoticed because the only check was that the
-  result was watertight, tried on a one-unit mesh at the origin where the two spaces almost coincide,
-  and because MeshFix nearly always got there first. The result is now mapped back through the grid's
-  own transform, and one that still does not line up with the model is refused, so a repair keeps the
-  mesh it had rather than return one in the wrong place. Found while measuring what the edition
-  without MeshFix costs, where this stage is the main path.
-- **Textures scrambled across half the model, and a load that could run out of memory.**
-  Both showed up on the same AI-generated GLB — 694,078 faces in 366 loose shells, with a UV atlas
-  made of 13,314 islands — and they were unrelated.
+  Трогаются только файлы, *говорящие*, где верх: glTF и GLB всегда, FBX — по собственному заголовку глазами ufbx. OBJ, PLY, OFF и 3DS про ориентацию ничего не пишут, а гадание по форме модели одних поставило бы, других положило бы, и не различить, — остаются как сохранены, как и STL с 3MF: печатные форматы и так Z-вверх. Превью браузера файлов идут тем же правилом из того же места (`engine/axes.py`): картинка обещает, как модель реально откроется.
+- **Децимация и Uniform падали с «Retopology made no change», когда не хватало MeshLab.** PyMeshLab опционален — установщик без него едет дальше, если не ставится, а облегчённое издание его не везёт, — но интерфейсу никто не говорил: выбор любого метода давал сообщение ни о чём без предложений. Теперь говорится, что нужен MeshLab, какой копии Meshwright не хватает и что вместо — умная ретопология. В README заявлялось, что отсутствующие движки «просто не предлагаются»; неправда была, теперь как есть.
+- **Ремонт последней надежды двигал и масштабировал модель.** Когда все движки сдались, ремонт перестраивает поверхность из воксельной твердотельной сетки («Герметичность любой ценой», по умолчанию вкл). trimesh отдаёт эту поверхность в *пространстве воксельных индексов* — и итог употреблялся как стоял: сфера 40 мм возвращалась 151 единицей поперёк с центром на (75, 75, 75). Не замечалось: единственной проверкой была герметичность итога, гонявшаяся на единичной сетке в начале координат, где пространства почти совпадают, а MeshFix почти всегда добирался первым. Итог теперь отображается обратно через собственный трансформ сетки, а не сошедшийся с моделью отклоняется: ремонт оставляет сетку, какая была, а не возвращает не там. Найдено при замере цены издания без MeshFix, где эта стадия — главный путь.
+- **Текстуры размазывались по половине модели, а загрузка могла съесть память.** Оба вылезли на одном сгенерированном GLB — 694 078 граней в 366 loose-кусках, с УФ-атласом из 13 314 островов, — и не связаны.
 
-  Separating a model into shells renumbers its faces, and the UV channel is meant to be permuted to
-  match. It never was: the check for "the faces did not move" was tested first, and it only compares
-  *how many* faces there are, which separation does not change. So the permutation branch below it
-  was unreachable and every shell was painted with some other shell's artwork. 50.8% of faces on the
-  reported model, which is why half of it looked shattered. Single-shell models were unaffected,
-  which is why it went unnoticed.
+  Разделение модели на куски перенумеровывает грани, а УФ-канал должен был переставиться следом. Так и не переставлялся: проверка «грани не двигались» тестировалась первой, а сравнивает она *сколько* граней — разделение не меняет. Ветка перестановки ниже оказывалась недостижима, и каждый кусок красился чужой текстурой. На доложенной модели — 50,8% граней: вот почему половина выглядела разбитой. Односоставные модели не страдали — потому и не замечалось.
 
-  The viewport's simplified copy had its own version of the same fault. Texture coordinates rode
-  through the decimation as one UV per welded vertex, chosen arbitrarily from the corners meeting
-  there — but a vertex on a UV seam has several, and on an island-heavy atlas that is 45% of them.
-  The display copy now carries UVs per face corner, transferred after decimation and split at seams
-  exactly as the full-detail path already did. Wrong faces went from 90.8% to 1.8%, and it costs
-  about half a second: the transfer picks each face's island by true surface distance over a short
-  candidate list, rather than by nearest triangle centroid.
+  У упрощённой копии вьюпорта была своя версия той же вины. Текстурные координаты ехали через децимацию по одной УФ на сваренную вершину, выбранной произвольно из сходящихся углов, — а у вершины на УФ-шве их несколько, на островном атласе таких 45%. Показовая копия теперь несёт УФ по углам граней, перенесённые после децимации и рвущиеся на швах ровно как полный путь уже делал. Неверных граней стало 90,8% → 1,8%, ценой около полсекунды: перенос выбирает остров каждой грани истинной поверхностной дистанцией по короткому списку кандидатов, а не ближайшим центроидом треугольника.
 
-  Separately, the loader parks the model's images on `mesh.metadata` for the texture engine to pick
-  up, and left them there. `mesh.copy()` and `mesh.submesh()` deep-copy that dictionary, so a model
-  with 4096px maps cloned them once per shell and died with a `MemoryError` before drawing anything.
-  Ownership now transfers properly and the images are dropped from the metadata once bound.
+  Отдельно загрузчик паркует картинки модели на `mesh.metadata`, чтобы забрал движок текстур, — и там оставлял. `mesh.copy()` и `mesh.submesh()` deep-copy'ят словарь: модель с картами 4096px клонировала их раз на кусок и умирала с `MemoryError`, ничего не нарисовав. Владение теперь передаётся как надо, а картинки из метаданных после привязки сбрасываются.
 
-- **Loading progress bar disappeared before the 3D model was visible on screen.** Python previously
-  emitted `state: 'done'` before returning the model data across the desktop IPC bridge. The frontend
-  dismissed the toast and progress bar immediately, leaving several seconds of heavy base64 decoding
-  and WebGL geometry buffer upload with zero visual indication that work was continuing. The progress bar
-  is now held through the Three.js rendering stage and dismisses only when the model is rendered.
-- **Unwrapping UVs removed loaded textures from the 3D model.** Generating or adjusting a UV unwrap
-  previously cleared all active materials (`self.materials.clear()`), wiping out albedo, normal and
-  roughness maps and resetting the viewport to plain plastic. Textures are now preserved across unwraps
-  and remain mapped onto the surface and displayed in the 2D unfold view.
-- **An FBX with its texture baked inside loaded as a grey model, or crashed the program.** Three
-  faults in a row on the same file, a 228 MB Hi3D export carrying an 8192×8192 JPEG:
+- **Полоса прогресса загрузки исчезала раньше, чем 3D-модель показывалась на экране.** Python раньше слал `state: 'done'` до возврата данных модели через десктопный IPC-мост. Фронтенд тут же dismiss'ил тост и прогресс — оставались секунды тяжёлого base64-декодирования и заливки буферов WebGL в GPU с нулём визуального «работа продолжается». Полоса теперь держится через стадию рендера Three.js и dismiss'ится, только когда модель отрисована.
+- **Развёртка УФ сносила загруженные текстуры с 3D-модели.** Генерация или правка УФ-развёртки раньше чистила все активные материалы (`self.materials.clear()`): альбедо, нормали и шероховатость слетали, вьюпорт сбрасывался на серый пластик. Текстуры теперь переживают развёртки и остаются натянутыми на поверхность и в 2D-виде развёртки.
+- **FBX со вшитой текстурой грузился серой моделью или ронял программу.** Три вины подряд на одном файле — экспорт Hi3D на 228 МБ с JPEG 8192×8192 внутри:
 
-  The FBX parser only ever read geometry and UVs, so the material — and the artwork inside it — was
-  never looked at. Nothing downstream could recover it either: trimesh cannot open FBX at all, and
-  the companion-file scan looks for images *beside* the model, which a file that embeds its own has
-  none of. Textures are now read from the material, through the normalised view that covers Phong,
-  Lambert, Arnold, Maya and Blender-style materials alike, embedded or referenced by name.
+  Парсер FBX читал только геометрию и УФ — материал с картинкой внутри никто не смотрел. Ниже по течению спасти было некому: trimesh FBX вообще не открывает, а скан соседних файлов ищет картинки *рядом* с моделью — а у файла со вшитым своим нет ничего. Текстуры теперь читаются из материала — через нормализованный вид, крыющий Phong, Lambert, Arnold, Maya и Blender-материалы одинаково, вшитые или по имени.
 
-  Decoding them then took the whole program down without a message. Allocating a large image while
-  the FBX scene is still open corrupts its teardown, and the process dies the moment it is released.
-  The bytes are now copied out and the scene closed before anything is decoded — which also cut peak
-  memory on that model from 2.4 GB to 0.95 GB.
+  Их декодирование затем клало всю программу без сообщения. Выделение большой картинки, пока сцена FBX ещё открыта, портит её разбор — процесс умирает в момент освобождения. Байты теперь копируются наружу, сцена закрывается, и только затем что-то декодируется — заодно пик памяти на той модели упал с 2,4 ГБ до 0,95 ГБ.
 
-  Finally, a model in more than one piece never showed its texture. The piece-colour overlay paints
-  straight onto the mesh, and the viewport will not fight it — so with 49 pieces the map was loaded,
-  the UVs were there, the button said PBR, and the model still drew flat grey. A textured model now
-  opens showing its texture, and choosing any shading mode takes the overlay down instead of lighting
-  the button up and changing nothing. **Highlight** puts the piece colours back.
+  Наконец, модель больше чем в одном куске текстуру не показывала никогда. Оверлей кусков красит напрямую на сетку, а вьюпорт с ним не дерётся, — так что при 49 кусках карта загружена, УФ на месте, кнопка говорит PBR, а модель всё равно плоско-серая. Текстурированная модель теперь открывается с показом текстуры, а выбор любого режима затенения снимает оверлей вместо зажигания кнопки без изменений. **Подсветка** возвращает цвета кусков.
 
-- **A reduced model showed a wrong colour on a handful of triangles near its seams.** Carrying UVs
-  through an edit rebuilds some corners from a neighbouring triangle, which extends that triangle's
-  plane and can land a hair past the edge of the texture sheet — measured 0.0077 outside on 108 of
-  119,994 corners taking a 2.96M-face model down to 40,000. The viewer samples with repeat wrapping,
-  so a hair past the edge fetches a colour from the opposite side of the atlas, on about a hundred
-  faces. The transfer now holds its answer inside the range the source itself used, which leaves a
-  deliberately tiled layout untouched.
+- **Уменьшенная модель показывала неверный цвет на горсти треугольников у швов.** Перенос УФ через правку перестраивает углы из соседнего треугольника — продолжает его плоскость и умеет приземлиться на волосок за край текстурного листа: намерено 0,0077 снаружи на 108 из 119 994 углов при спуске модели 2,96 млн граней до 40 000. Вьювер семплирует с repeat-обёрткой: волосок за краем тащит цвет с противоположной стороны атласа, примерно на сотне граней. Перенос теперь держит ответ внутри диапазона, который использовал сам исходник, — намеренно тайловую раскладку не трогает.
 
-- **Loading a model could fail outright with `IndexError: boolean index did not match indexed
-  array`.** The two passes that drop degenerate and duplicate faces built both of their masks up
-  front. The first pass shortens the face array, so the second mask was then too long by exactly
-  the number of faces the first had removed, and any model with both kinds of bad face refused to
-  open. Each mask is now measured against the faces that are actually there when it is applied.
+- **Загрузка модели могла падать outright с `IndexError: boolean index did not match indexed array`.** Два прохода, сносящие вырожденные и дубли граней, строили обе маски upfront. Первый проход укорачивает массив граней — вторая маска оказывалась длиннее ровно на число снесённых первым, и любая модель с обоими видами плохих граней отказывалась открываться. Каждая маска теперь меряется против граней, которые реально есть к моменту применения.
 
 ## [1.3.0] — 2026-09-04
 
-### Fixed
-- **Textured models were diagnosed as broken, and repair then destroyed them.** UV coordinates were
-  stored per vertex, which forces a vertex to be duplicated at every texture seam. That duplication
-  breaks the edge joining two triangles, so the analyser read a clean watertight model as a pile of
-  disconnected shells with hundreds of open holes — and repair closed holes that were never there.
-  A clean textured sphere GLB loaded as *Repair required, score 59, 9 shells*; decimating it to 25%
-  produced 201 shells; repair then turned 1,279 faces into 168,811. Meshwright now keeps texture
-  coordinates in a per-face-corner array beside the mesh, so the geometry stays welded and analysis,
-  repair and reduction all see the real topology. The same model now loads and survives the whole
-  pipeline as *Print ready, score 100, watertight, 0 shells*.
-- **Reducing or repairing a textured model slid the texture across the surface.** UVs were carried
-  over by matching each new triangle to the source triangle with the nearest *centroid*, then
-  projecting all three of its corners onto that one triangle and clamping anything that fell
-  outside — which snapped those corners onto the triangle's edge. Every corner is now projected to
-  its true closest point on the source surface, and corners that land across a UV seam are
-  re-evaluated inside the chart their own face belongs to. Measured against a known-exact UV map,
-  worst-case drift after decimating to 2% of the original face count fell from 394 texels to 0.46
-  on a 2048 px map; after repair, from 775 to 24.
-- **Decimation left the mesh as an unwelded triangle soup.** The old UV transfer computed every face
-  corner independently and could weld almost none of them back together, so a 1,280-face result came
-  back with 3,785 vertices instead of 642 — losing smooth shading, inflating exports and breaking
-  watertightness. Decimation now returns a properly welded mesh.
-- **Unwrapping a print-ready model reported it as broken.** Unwrap split vertices at every seam, so a
-  model scoring 100 dropped to 59 with "7 open holes" without a single triangle changing. Unwrapping
-  no longer touches the geometry.
-- **Unwrapping crashed the whole application on ordinary watertight models.** xatlas has a bug on
-  closed surfaces — where every edge has an opposite, which is exactly what a print-ready model is —
-  that leaves its boundary data unset and its convex-hull pass reading uninitialised memory
-  ([jpcy/xatlas#146](https://github.com/jpcy/xatlas/issues/146)). An 81,920-face sphere took the
-  window down with an access violation and no message. Meshwright now splits every model into open
-  patches before unwrapping, so xatlas is never given the input that breaks it, and the patches are
-  packed into one atlas so the result is still a single texture layout. The same sphere now unwraps
-  in about a second.
-- **Unwrapping large models silently produced overlapping UVs.** Above roughly 40,000 faces xatlas
-  stops segmenting and returns one chart covering the whole surface, with no error — measured UV
-  coverage of 1.02 to 1.57 in a unit square, where anything above 1.0 means charts sitting on top of
-  each other and a texture that smears. Every layout is now measured before it is accepted, and the
-  patches are halved and retried if it overlaps or if the texture density came out uneven.
-- **Unwrapping was extremely slow on dense models.** A 159,048-face surface took 121 seconds; it now
-  takes 3.9, with *lower* distortion. A 327,680-face model went from crashing to 2.4 seconds.
-- **Re-unwrapping a textured model silently scrambled it.** A new UV layout invalidates any texture
-  painted for the old one. Unwrap now asks first, and clears maps that no longer apply.
-- **A stray image file beat the texture the model actually declared.** Companion-file scanning ran
-  before the model's own material, so a leftover `*_diffuse.png` in the folder overrode the embedded
-  base colour. The material a file declares is now the authority; the folder scan fills the gaps.
-- **`metallicRoughness` texture files were ignored.** The standard glTF export name — what Sketchfab,
-  Blender and most exporters write — matched no pattern, so metallic and roughness were silently
-  lost, and with no separate base-colour file the packed map could be loaded as albedo. It is now
-  recognised and unpacked, alongside `metalRough`, `RMA` and `occlusionRoughnessMetallic`.
-- **`dilation_pixels=` was ignored by the seam dilator.** Every caller silently got the 16 px default,
-  including the ComfyUI node and the project's own test.
-- **Every successful UV unwrap reported an error.** A button reference was scoped to the wrong
-  function, so the handler threw before its success message.
-- **The UV island count was the mesh body count.** A sphere unwrapped into 7 charts reported "1
-  island". The real chart count now comes from xatlas, along with the atlas size.
-- **A recovered crash session inherited the previous model's textures.** `recover()` did not clear the
-  material set the way `load()` does.
-- **Texture failures were swallowed silently** by a bare `except: pass` around the texture state.
-- Exporting a texture pack wrote the same UV guide image twice, under two names.
+### Исправлено
+- **Текстурированные модели диагностировались битыми, а ремонт их затем уничтожал.** УФ хранились повершинно: вершина на каждом шве текстур вынуждена дублироваться. Дублирование рвёт ребро, соединявшее два треугольника, — анализатор читал чистое герметичное тело кучей несвязанных кусков с сотнями открытых дыр, а ремонт закрывал дыры, которых не было. Чистая текстурированная сфера GLB грузилась как *«Требуется ремонт», 59, 9 кусков*; децимация до 25% доводила до 201 куска; ремонт раздувал 1 279 граней до 168 811. Meshwright теперь держит текстурные координаты в массиве по углам граней рядом с сеткой: геометрия остаётся сваренной, анализ, ремонт и упрощение видят настоящую топологию. Та же модель теперь грузится и проходит весь конвейер как *«Готово к печати», 100, герметично, 0 кусков*.
+- **Упрощение и ремонт текстурированной модели елозили текстуру по поверхности.** УФ переносились матчингом каждого нового треугольника к исходному с ближайшим *центроидом*, затем проекцией всех трёх его углов на один треугольник и клампом вылетевшего — углы схлопывались на ребро треугольника. Каждый угол теперь проектируется в истинную ближайшую точку исходной поверхности, а углы через УФ-шов переоцениваются внутри чарта, которому принадлежит их грань. Замерено против точно известной УФ: худший дрейф после децимации до 2% исходного числа граней упал с 394 текселей до 0,46 на карте 2048; после ремонта — с 775 до 24.
+- **Децимация оставляла сетку несваренным треугольным супом.** Старый перенос УФ считал каждый угол грани независимо и сварить обратно не мог почти ничего: итог на 1 280 граней возвращался с 3 785 вершинами вместо 642 — терялось гладкое затенение, раздувались экспорты, ломалась герметичность. Децимация теперь отдаёт правильно сваренную сетку.
+- **Развёртка готовой к печати модели докладывала её битой.** Развёртка рвала вершины на каждом шве: модель на 100 падала до 59 с «7 открытыми дырами» без изменившегося треугольника. Развёртка геометрию больше не трогает.
+- **Развёртка роняла всё приложение на обычных герметичных моделях.** У xatlas баг на замкнутых поверхностях — где у каждого ребра есть парное, ровно то, чем является готовая к печати модель, — boundary-данные не выставляются, а проход по выпуклой оболочке читает неинициализированную память ([jpcy/xatlas#146](https://github.com/jpcy/xatlas/issues/146)). Сфера на 81 920 граней клала окно нарушением доступа без сообщения. Meshwright теперь режет каждую модель на открытые патчи до развёртки: xatlas никогда не получает вход, на котором ломается, а патчи пакуются в один атлас — итог всё равно одна текстурная раскладка. Та же сфера теперь разворачивается около секунды.
+- **Развёртка больших моделей молча давала наложенные УФ.** Выше примерно 40 000 граней xatlas перестаёт сегментировать и отдаёт один чарт на всю поверхность — без ошибки: намеренное УФ-покрытие 1,02–1,57 в единичном квадрате, где всё выше 1,0 — чарты друг на друге, а текстура мажется. Каждая раскладка теперь меряется до приёмки, а патчи дробятся вдвое и пробуются снова при наложении или неровной плотности текстуры.
+- **Развёртка была крайне медленной на плотных моделях.** Поверхность на 159 048 граней занимала 121 секунду; теперь 3,9 — с *меньшей* дисторсией. Модель на 327 680 граней — с падения до 2,4 секунд.
+- **Повторная развёртка текстурированной модели молча её калечила.** Новая УФ-раскладка обесценивает текстуру, нарисованную под старую. Развёртка теперь спрашивает сначала и сносит карты, которым больше не лечь.
+- **Шальная картинка била текстуру, которую модель реально объявила.** Скан соседних файлов шёл раньше материала самой модели — leftover `*_diffuse.png` в папке перебивал вшитый базовый цвет. Объявленное файлом теперь авторитет; скан папки добирает пробелы.
+- **Файлы текстур `metallicRoughness` игнорировались.** Стандартное имя экспорта glTF — что пишут Sketchfab, Blender и большинство экспортёров, — ни под один паттерн не подходило: металличность и шероховатость тихо терялись, а без отдельного файла базового цвета пак мог грузиться как альбедо. Теперь распознаётся и разбирается, рядом с `metalRough`, `RMA` и `occlusionRoughnessMetallic`.
+- **`dilation_pixels=` игнорировался расширителем швов.** Каждый вызывающий молча получал дефолтные 16 px, включая ноду ComfyUI и собственный тест проекта.
+- **Каждая успешная УФ-развёртка сообщала об ошибке.** Ссылка на кнопку лежала не в той функции — обработчик падал раньше сообщения об успехе.
+- **Счёт островов УФ был счётом тел сетки.** Сфера, развернувшаяся в 7 чартов, докладывала «1 остров». Настоящий счёт чартов теперь приходит из xatlas, вместе с размером атласа.
+- **Восстановленная crash-сессия наследовала текстуры прошлой модели.** `recover()` не чистил набор материалов, как `load()`.
+- **Падения текстур глотались молча** голым `except: pass` вокруг состояния текстур.
+- Экспорт текстурного пака писал один УФ-гид дважды, под двумя именами.
 
-- **Every mesh operation re-sent the whole texture set.** A repair, a reduce, an undo or even a
-  rotate re-encoded all six maps to base64 and shipped them to the interface: 375 ms and 12.8 MB
-  each time, for data that had not changed. Results now carry a version number and a list of
-  channels; the maps are fetched only when that version moves. Ten operations in a row went from
-  about 3.7 seconds of encoding to 12 milliseconds.
-- **The MCP server returned megabytes of texture data to assistants.** `_strip()` dropped the binary
-  mesh preview but not the textures, so a single `repair` on a textured model returned 9.27 MB —
-  enough to swamp a context window. Tool results are now under a kilobyte.
-- **Texture seams could show dark fringes.** The gutters between UV islands were left empty, so GPU
-  filtering and mipmapping blended that emptiness into the edge of every island. Exported texture
-  packs, baked GLBs and textured OBJ/glTF exports now have their gutters padded. The maps held in
-  memory are untouched — padding is applied to copies on the way out.
-- **Generated normal maps had a false ridge along all four borders.** The gradient pass assumed the
-  source image tiled, so it read the opposite edge as if it were adjacent. It no longer does unless
-  you say the image tiles.
+- **Каждая операция с сеткой пересылала весь набор текстур.** Ремонт, упрощение, отмена и даже поворот перекодировали все шесть карт в base64 и везли в интерфейс: 375 мс и 12,8 МБ каждый раз за данные, которые не менялись. Итоги теперь несут номер версии и список каналов; карты забираются, только когда версия сдвинулась. Десять операций подряд: было около 3,7 секунд кодирования, стало 12 миллисекунд.
+- **MCP-сервер возвращал ассистентам мегабайты текстурных данных.** `_strip()` сбрасывал бинарное превью сетки, но не текстуры: один `repair` текстурированной модели возвращал 9,27 МБ — хватит утопить контекстное окно. Итоги инструментов теперь меньше килобайта.
+- **Швы текстур умели показывать тёмные каёмки.** Канавки между УФ-островами оставались пустыми: GPU-фильтрация и мипмэппинг подмешивали пустоту в край каждого острова. Экспортные паки текстур, запечённые GLB и текстурированные экспорты OBJ/glTF теперь с залитыми канавками. Карты в памяти не тронуты: заливка идёт на копии по дороге наружу.
+- **Генерированные карты нормалей имели ложный гребень по всем четырём границам.** Проход градиентов считал исходник тайлящимся и читал противоположный край как смежный. Больше не читает, пока не скажете, что картинка тайлится.
 
-- **Loading a dense FBX took minutes.** A 225 MB, 5-million-triangle model effectively hung: it
-  loaded in about 27 seconds, of which ten minutes and counting were spent re-projecting texture
-  coordinates that were already correct. Separating a multi-body model renumbers its faces, and the
-  commit step responded by projecting twenty million points onto a five-million-face surface to
-  recover a mapping it could have simply permuted. It now carries the permutation through and
-  reindexes, which is exact and instant.
-- **Row-wise de-duplication was the next bottleneck.** Deciding which edges are open, which faces
-  are duplicates and which corners can be welded all reduce to "which rows of this array are equal",
-  and `numpy.unique(axis=0)` answers that by sorting each row as a block of bytes. Packing each row
-  into a single 64-bit key instead is exact and several times quicker: building the viewport vertex
-  buffer went from 5.6 s to 1.8 s, and the diagnostics pass from 10.1 s to 7 s on the same model.
-  Where the values will not fit in a key, the original path still runs.
-- **The loader paid for a summary the application discards.** `load_model()` measured
-  watertightness, volume and area on every load — three seconds on a dense model — and the desktop
-  app threw the result away before running the full diagnostics. It is now optional.
-- The FBX index buffers are read with `np.fromiter`, and duplicate faces found with packed keys
-  rather than trimesh's row hash, together about a second and a half on a five-million-face model.
-- Hole counting no longer re-derives the open edges the diagnostics pass had already found.
-- **A failed file dialog was reported as if a file had been chosen.** The dialog methods return a
-  path, and the interface treats the return value as one. Wrapping them in the error decorator made
-  them answer with `{success: false, ...}` on failure — a truthy object that was then handed to the
-  loader as a path, so a dialog that could not open surfaced as *"path.split is not a function"*.
-  They now return an empty string in every failure case and log the real reason.
-- **Several viewport controls stopped repainting.** Moving to on-demand rendering saved the CPU an
-  idle 60 fps, but six methods that change the scene never asked for a frame: the light sliders, the
-  diagnostic locator, the piece highlighting, the displacement slider, the environment and the
-  preset views all appeared dead until the camera happened to move. Every scene-mutating method now
-  invalidates, and a test enumerates them so the next one cannot be forgotten.
-- **FBX polygons are triangulated with array arithmetic** rather than a Python loop over every
-  corner, and are covered by tests against a reference implementation for triangles, quads, n-gons
-  and meshes that mix them.
-- The UV worker no longer asks xatlas to pack an empty set, which wrote a complaint to a native
-  stderr the parent could not catch.
+- **Загрузка плотного FBX занимала минуты.** Модель на 225 МБ и пять миллионов треугольников effectively висела: грузилась около 27 секунд, из которых десять минут с довеском уходили на перепроекцию текстурных координат, которые уже были верны. Разделение многомодельника перенумеровывает грани, а шаг commit'а отвечал проекцией двадцати миллионов точек на пятимиллионную поверхность ради отображения, которое можно было просто переставить. Теперь перестановка проносится и переиндексует — точно и мгновенно.
+- **Построчная дедупликация была следующим горлом.** Решение, какие края открыты, какие грани дубли и какие углы сварить, сводится к «какие строки массива равны», а `numpy.unique(axis=0)` отвечает сортировкой каждой строки как блока байтов. Упаковка каждой строки в один 64-битный ключ — точно и в разы быстрее: построение вершинного буфера вьюпорта с 5,6 с до 1,8 с, проход диагностики с 10,1 с до 7 с на той же модели. Где значения в ключ не лезут — едет старый путь.
+- **Загрузчик платил за сводку, которую приложение выбрасывает.** `load_model()` мерил герметичность, объём и площадь на каждой загрузке — три секунды на плотной модели, — а десктоп выбрасывал итог до полной диагностики. Теперь опционально.
+- Индексные буферы FBX читаются через `np.fromiter`, дубли граней ищутся пакетированными ключами, а не row hash trimesh — вместе около полутора секунд на пятимиллионной модели.
+- Подсчёт дыр больше не выводит открытые края, которые проход диагностики уже нашёл.
+- **Неудавшийся диалог файла докладывался как выбранный файл.** Методы диалогов возвращают путь, а интерфейс трактует возвращённое как путь. Обёртка декоратором ошибок заставляла их отвечать `{success: false, ...}` при неудаче — объектом, который в проверке истинен и потому отдавался загрузчику как путь: диалог, который не открылся, всплывал как *«path.split is not a function»*. Теперь во всех случаях неудачи возвращается пустая строка, а настоящая причина логируется.
+- **Несколько контролов вьюпорта перестали перерисовываться.** Переход на отрисовку по требованию сэкономил CPU idle 60 fps, но шесть методов, меняющих сцену, кадра не просили: слайдеры света, локатор диагностики, подсветка кусков, слайдер смещения, окружение и пресетные виды казались мёртвыми, пока камера случайно не двигалась. Каждый меняющий сцену метод теперь инвалидирует, а тест перечисляет их — следующий забыть нельзя.
+- **Полигоны FBX триангулируются арифметикой массивов**, а не питоновским циклом по каждому углу, и крыты тестами против эталонной реализации на треугольниках, quad-ах, n-гонах и сетках вперемешку.
+- УФ-воркер больше не просит xatlas паковать пустой набор — тот писал жалобу в нативный stderr, который родителю не поймать.
 
-- **Textures from Meshy and Hi3D models loaded flat.** Those generators embed a 2x2 placeholder in
-  the FBX material and ship the real 2048px maps as files beside it. Treating the material as
-  authoritative — correct in general — meant the placeholder won, so a fully textured model appeared
-  untextured. Placeholders are now ignored in favour of the real artwork. On a Meshy export that is
-  the difference between one 2x2 image and four 2048px maps.
-- **Smart retopology could take ten minutes and then close the application.** QuadriFlow can abort
-  inside Eigen on a mesh it dislikes, which in-process ends Meshwright mid-operation. It now runs in
-  a child process with a two-minute budget per piece; a crash or a stall falls through to uniform
-  remeshing, and the log says which engine did the work.
-- **Preparing a dense piece for smart retopology took 73 seconds.** Decimating five million faces to
-  two hundred thousand went straight to MeshLab's topology-preserving collapse. Doing it in two
-  steps — fast-simplification for the bulk, MeshFix to sew the surface closed — takes 27 seconds end
-  to end instead of 82, and the finished retopology deviated 4.95% from the original rather than
-  9.68%. MeshLab still runs when that chain cannot produce a manifold.
-- **The 2D UV view was unreadable on a dense model.** It drew one triangle in every few hundred,
-  which is a field of specks rather than a wireframe. It now draws the island outlines — the seams
-  and open edges that define the layout — and says that is what it is doing.
-- **The diagnostics crashed on a model with duplicate faces.** A refactor kept the totals and dropped
-  the masks the issue locations are built from, so clicking "Duplicate faces" raised a NameError.
+- **Текстуры моделей Meshy и Hi3D грузились плоскими.** Эти генераторы вшивают в материал FBX плейсхолдер 2×2, а настоящие карты 2048 везут файлами рядом. Материал как авторитет — в общем верно — означал победу плейсхолдера: полностью текстурированная модель казалась нетекстурированной. Плейсхолдеры теперь игнорируются в пользу настоящих файлов. На экспорте Meshy это разница между одной картинкой 2×2 и четырьмя картами 2048.
+- **Умная ретопология умела занять десять минут и закрыть приложение.** QuadriFlow умеет аварийно завершаться внутри Eigen на не нравящейся сетке — в том же процессе это кончает Meshwright посреди операции. Теперь крутится в дочернем процессе с бюджетом две минуты на кусок; падение или простой скатываются в равномерный ремеш, а лог говорит, какой движок сделал работу.
+- **Подготовка плотного куска к умной ретопологии занимала 73 секунды.** Децимация пяти миллионов граней до двухсот тысяч шла напрямую в топологически сохраняющую децимацию MeshLab. В два шага — fast-simplification на массу, MeshFix зашить поверхность, — 27 секунд от края до края вместо 82, а готовая ретопология ушла от оригинала на 4,95% вместо 9,68%. Где цепочка годного многообразия дать не может — всё ещё отрабатывает MeshLab.
+- **2D-вид УФ на плотной модели не читался.** Рисовал один треугольник из каждых пары сотен — поле точек вместо каркаса. Теперь рисует абрисы островов — швы и открытые края, задающие раскладку, — и говорит, что именно это делает.
+- **Диагностика падала на модели с дублями граней.** Рефакторинг оставил итоги и снёс маски, из которых строятся места проблем, — клик «Дубли граней» поднимал NameError.
 
-### Added
-- **Viewport detail.** A model too dense to draw quickly is shown simplified, with a slider in the
-  viewport toolbar to raise it to the full mesh and a message saying what is on screen. It is the
-  picture only: diagnostics, repair, reduce, retopology and export always use every triangle. A
-  five-million-triangle model's viewport payload drops from 148 MB to 27 MB.
-- **Image tiles seamlessly** option for PBR generation: blends the source edges and wraps the
-  surface gradients, for repeating materials.
-- **Displace** slider and a **Height** viewport channel, so the generated height map can be seen and
-  used instead of only exported.
-- Unwrapping now reports what it actually produced — islands, seam edges, atlas size and whether the
-  texture density came out even — instead of a chart count that was really the mesh's body count.
-- **New** button in the top bar (<kbd>Ctrl</kbd>+<kbd>N</kbd>) and <kbd>Delete</kbd> both close the
-  model and empty the workspace — mesh, undo history, autosave snapshot and textures — after a
-  confirmation. <kbd>Delete</kbd> still removes ticked pieces when the Separate pieces panel has a
-  selection.
-- OBJ, GLB and glTF exports now carry the model's UV coordinates and PBR maps. STL, PLY, OFF and 3MF
-  cannot store them and are unchanged.
-- `rtree` is now a required package. It bundles libspatialindex, installs as a pure wheel on every
-  supported Python, and provides the AABB queries behind the exact UV transfer. Without it the
-  transfer falls back to a slower KD-tree candidate search rather than failing.
+### Добавлено
+- **Детализация вьюпорта.** Слишком плотная для быстрой отрисовки модель показывается упрощённой, со слайдером на панели вьюпорта до полной сетки и сообщением, что на экране. Это только картинка: диагностика, ремонт, упрощение, ретопология и экспорт всегда идут по всем треугольникам. Пакет пятимиллионной модели во вьюпорт падает со 148 МБ до 27 МБ.
+- Опция **«Картинка тайлится бесшовно»** для генерации PBR: смешивает края исходника и заворачивает градиенты поверхности — под повторяющиеся материалы.
+- Слайдер **«Смещение»** и канал вьюпорта **«Высота»**: сгенерированную карту высоты видно и можно применять, а не только экспортировать.
+- Развёртка теперь сообщает, что реально вышло, — острова, рёбра швов, размер атласа и ровность плотности текстуры, — вместо счёта чартов, который был счётом тел сетки.
+- Кнопка **«Новое»** в верхней панели (<kbd>Ctrl</kbd>+<kbd>N</kbd>), а <kbd>Delete</kbd> закрывает модель и чистит рабочее место — сетку, историю отмен, снимок автосейва и текстуры — с подтверждением. <kbd>Delete</kbd> по-прежнему убирает отмеченные куски, когда в панели кусков есть выбор.
+- Экспорты OBJ, GLB и glTF теперь несут УФ-координаты и PBR-карты модели. В STL, PLY, OFF и 3MF их положить некуда — без изменений.
+- `rtree` теперь обязательный пакет. Пакует libspatialindex, ставится чистым колесом на каждом поддерживаемом Python и даёт AABB-запросы точного переноса УФ. Без него перенос откатывается на медленный поиск кандидатов по KD-дереву, а не падает.
 
 ## [1.2.0] — 2026-08-26
 
-### Fixed
-- **The installer said Python was missing when it was not — and stopped when it really was.**
-  Windows ships a placeholder `python.exe` (App Execution Alias) that prints *"Python was not
-  found; run without arguments to install from the Microsoft Store"* and exits with an error.
-  `install.ps1` ran `python --version` inside a `try/catch`, which never sees a native exit code,
-  so it printed `[OK] Detected`, kept going, and failed one step later with
-  `[ERROR] Could not create the virtual environment.` The installer now *probes* candidates by
-  running them — the py launcher, every `python`/`python3` on `PATH`, the registry entries written
-  by the python.org installer, and the usual install folders including conda and uv — keeps only
-  real 64-bit interpreters that have `venv` and `ensurepip`, prefers the tested 3.10–3.13 series,
-  and when nothing is usable explains how to install Python and how to switch the placeholder off.
-- **One missing wheel aborted the whole installation.** `pip install -r requirements.txt` is
-  all-or-nothing, and several dependencies are compiled extensions with no build for the newest
-  Python for months after its release (`ufbx` has none for 3.13/3.14 and falls back to a source
-  build that needs Visual C++). Required packages now live in `requirements.txt` — all of them
-  pure-wheel installs — and the mesh engines moved to `requirements-optional.txt`, which the
-  installer installs **one at a time**, keeping going and reporting what it skipped.
-- **Exported models could slice as a thin, hollow shell.** An open surface has no inside, so a
-  slicer prints it as a single-wall shell with no infill. Export now measures the result and warns
-  on screen when the file is not a closed solid, when it encloses no volume, or when its walls
-  average under 1.2 mm; inside-out meshes are turned the right way out on the way to the file.
+### Исправлено
+- **Установщик говорил, что Python нет, когда он был, — и останавливался, когда его правда не было.**
+  Windows везёт заглушку `python.exe` (App Execution Alias), печатающую *«Python was not found; run without arguments to install from the Microsoft Store»* с кодом ошибки.
+  `install.ps1` делал `python --version` внутри `try/catch`, который нативный код выхода не видит никогда,
+  — печатал `[OK] Detected`, ехал дальше и падал шагом позже с
+  `[ERROR] Could not create the virtual environment.` Установщик теперь *зондирует* кандидатов запуском:
+  py launcher, каждый `python`/`python3` в `PATH`, ветки реестра от установщика python.org и обычные папки установок, включая conda и uv. Оставляются только настоящие 64-битные интерпретаторы с `venv` и `ensurepip`; предпочитается проверенная серия 3.10–3.13;
+  а когда годного нет — объясняется, как поставить Python и выключить заглушку.
+- **Одно missing колесо роняло всю установку.** `pip install -r requirements.txt` — всё-или-ничего,
+  а несколько зависимостей — компилируемые расширения, которых под свежий Python нет месяцами после выхода
+  (`ufbx` нет под 3.13/3.14 — откатывается в сборку из исходников, которой нужен Visual C++). Обязательные пакеты
+  теперь живут в `requirements.txt` — все чистой установкой колёсами, — а движки сеток переехали в
+  `requirements-optional.txt`: установщик ставит **по одному**, едет дальше и сообщает пропущенное.
+- **Экспортированные модели умели резаться тонкой полой скорлупой.** У открытой поверхности нет внутренности —
+  слайсер печатает её одностеночной скорлупой без заполнения. Экспорт теперь меряет итог и предупреждает на экране,
+  когда файл не замкнутое тело, не замыкает объёма или стенки в среднем тоньше 1,2 мм; вывернутые сетки по дороге
+  в файл разворачиваются наружу.
 
-### Added
-- **Load demo model.** Meshwright ships no 3D models and several people expected one to come with
-  it. The empty viewport now says so and offers a built-in test object, built in memory: a sphere
-  with a hole, a patch of flipped faces and a loose second piece — Repair takes it to watertight.
-- `install.bat -Check` reports every Python on the machine and every engine in the environment
-  without changing anything, and every run writes `install-log.txt` for support.
-- `install.bat -Recreate`, `-NoOptional` and `-Python <path>`, plus `scripts/check_install.py`,
-  which prints exactly which engines a copy has.
-- The installer refuses to run from inside a downloaded ZIP or a folder it cannot write to, and
-  explains what to do instead; `start.bat` says to run `install.bat` first instead of falling back
-  to a system Python that may not exist.
+### Добавлено
+- **Загрузка демо-модели.** Meshwright моделей не везёт, а несколько человек ждали, что одна приложена.
+  Пустой вьюпорт теперь так и говорит и предлагает встроенный тестовый объект, собранный в памяти: сфера
+  с дырой, пятном перевёрнутых граней и оторванным вторым куском — ремонт доводит до герметичности.
+- `install.bat -Check` сообщает каждый Python машины и каждый движок окружения, ничего не меняя; каждый прогон
+  пишет `install-log.txt` для поддержки.
+- `install.bat -Recreate`, `-NoOptional` и `-Python <path>`, плюс `scripts/check_install.py` — печатает, какие движки есть в копии.
+- Установщик отказывается работать изнутри скачанного ZIP и из папки без записи — и объясняет, что вместо;
+  `start.bat` говорит сначала прогнать `install.bat`, а не откатывается на системный Python, которого может не быть.
 
-### Changed
-- Export offers STL, OBJ, PLY, OFF, GLB, glTF and 3MF, and names files
+### Изменено
+- Экспорт предлагает STL, OBJ, PLY, OFF, GLB, glTF и 3MF, а файлы называет
   `<original>-GS-<timestamp>-fixed.<ext>`.
-- `numpy` upper bound raised to `<2.6`.
+- Верхняя граница `numpy` поднята до `<2.6`.
 
 ## [1.1.2] — 2026-08-21
 
-### Fixed
-- **The installer could break other Python projects.** `requirements.txt` used unbounded version
-  ranges, so `pip install -r requirements.txt` on a shared interpreter upgraded numpy to the latest
-  release and broke unrelated packages that pin it (numba, pyarrow and friends). Every dependency
-  now has an upper bound (`numpy>=1.26,<2.4`), and the installer creates an isolated `.venv` inside
-  the project folder by default. `start.bat`, `start.ps1` and the new `run-mcp.bat` use it
-  automatically; `install.ps1 -Global` opts back into a system-wide install.
+### Исправлено
+- **Установщик умел ломать другие Python-проекты.** В `requirements.txt` стояли неограниченные диапазоны —
+  `pip install -r requirements.txt` на общем интерпретаторе обновлял numpy до последнего и ломал несвязанные
+  пакеты, которые его пинят (numba, pyarrow и друзья). У каждой зависимости теперь верхняя граница
+  (`numpy>=1.26,<2.4`), а установщик по умолчанию создаёт изолированный `.venv` в папке проекта.
+  `start.bat`, `start.ps1` и новый `run-mcp.bat` подхватывают его сами; `install.ps1 -Global` возвращает
+  системную установку.
 
-### Added
-- `requirements-dev.txt` for the test and lint tooling.
-- `run-mcp.bat` to start the MCP server from the project environment.
+### Добавлено
+- `requirements-dev.txt` под тестовый и линтовый инструмент.
+- `run-mcp.bat` — старт MCP-сервера из окружения проекта.
 
 ## [1.1.1] — 2026-08-21
 
-### Fixed
-- **Sliver repair tore the mesh.** Edge collapses and flips were applied without checking whether
-  they were topologically valid, so fixing slivers on a closed model could open holes and create
-  non-manifold edges — which the safety guard then (correctly) rejected, making the button look
-  broken. Collapses now require the **link condition** and flips require that the replacement edge
-  does not already exist; a pass that would still worsen the topology is discarded. On a
-  1,994,490-face miniature: 186 slivers → 3, mesh stays watertight, and the 3 it refuses to touch
-  are reported instead of silently forced.
-- Shell colours were washed out by the key light on large models; the palette is now deeper and the
-  material less reflective.
+### Исправлено
+- **Починка иголок рвала сетку.** Схлопывания и перевороты применялись без проверки топологической валидности:
+  правка иголок на замкнутой модели умела открывать дыры и делать немногообразные края — которые страховка затем
+  (верно) отклоняла, и кнопка выглядела битой. Схлопывания теперь требуют **условие линка**, перевороты — чтобы
+  ребра-замены ещё не было; проход, всё равно ухудшающий топологию, отбрасывается. На миниатюре 1 994 490 граней:
+  186 иголок → 3, сетка герметична, а 3 нетронутые называются, а не молча давятся.
+- Цвета кусков вымывались ключевым светом на больших моделях; палитра теперь глубже, материал менее reflective, отражающий.
 
-### Added
-- **Progress notifications.** Long operations report the face count and an estimated duration before
-  starting, show a live elapsed timer and progress bar in the bottom-right of the workspace, and
-  report the real elapsed time when they finish. Toasts can be dismissed or left to fade.
-- Result toasts for repair, sliver fixing and reduction, including surface deviation, and a toast
-  when a change is rejected by the safety guard.
+### Добавлено
+- **Уведомления о прогрессе.** Долгие операции сообщают число граней и оценку длительности до старта, тикают живым
+  таймером и прогрессом справа снизу рабочего места и докладывают реальное время как закончат. Тосты dismiss'ятся
+  или гаснут сами.
+- Тосты итогов ремонта, правки иголок и упрощения, включая отклонение поверхности, и тост отказа страховки.
 
 ## [1.1.0] — 2026-08-21
 
-### Added
-- **Smart retopology** — QuadriFlow (BSD-3) rebuilds a model as clean, curvature-aligned quads;
-  three reduction engines (smart retopo / decimate / uniform) with an absolute face target,
-  low-poly presets and measured surface deviation in millimetres.
-- **MCP server** (`mcp_server.py`) exposing 15 tools over stdio, plus a `meshwright://report` resource.
-- **Service layer** (`engine.service.MeshService`) shared by the desktop app, MCP and Python callers.
-- **Undo / redo** with numbered states, plus a full keyboard shortcut set and an in-app help dialog.
-- **Crash recovery** — every accepted state is snapshotted in a background thread and offered for
-  recovery if the app does not exit cleanly.
-- **Safety guard** — a change that would add critical problems or discard most of the geometry is
-  rejected, keeping the previous state, with an explicit "apply anyway".
-- **Issue locations** — click any diagnostic to fly to it; exact spots plus a general-area marker.
-- **About panel** listing every engine with its installed version.
-- **Sliver repair** — needle triangles collapsed, cap triangles flipped into larger neighbours.
-- **JSON report** export of diagnostics and the full operation history.
-- MeshFix added to the repair pipeline; scikit-image enables the voxel remesh fallback.
-- Input validation layer (`engine.validation`) applied to every public call.
+### Добавлено
+- **Умная ретопология** — QuadriFlow (BSD-3) перестраивает модель чистыми quad-ами по кривизне;
+  три движка упрощения (умная / децимация / равномерная) с абсолютной целью граней,
+  лоу-поли пресетами и измеренным отклонением поверхности в миллиметрах.
+- **MCP-сервер** (`mcp_server.py`): 15 инструментов по stdio плюс ресурс `meshwright://report`.
+- **Слой сервиса** (`engine.service.MeshService`), общий десктопу, MCP и Python-вызывающим.
+- **Undo / redo** с номерными состояниями, полный набор хоткеев и диалог помощи в приложении.
+- **Восстановление после падений** — каждое принятое состояние пишется в фоновый снимок и предлагается,
+  если приложение вышло нечисто.
+- **Страховка** — изменение, добавляющее критичные проблемы или выбрасывающее почти всю геометрию,
+  отклоняется, прошлое состояние остаётся, с явным «применить всё равно».
+- **Места проблем** — клик по диагностике подводит к ней; точные точки плюс маркер общего района.
+- Панель **About** со списком каждого движка и его установленной версии.
+- **Починка иголок** — иглы схлопываются, крышки переворачиваются в соседей покрупнее.
+- Экспорт **JSON-отчёта** о диагностике и всей истории операций.
+- MeshFix добавлен в конвейер ремонта; scikit-image включает запасной воксельный ремеш.
+- Слой проверки ввода (`engine.validation`) на каждом публичном вызове.
 
-### Fixed
-- Retopology could return a mesh with new holes and split shells on topologically complex models;
-  every piece is now verified and repaired with MeshFix, or falls back to another engine.
-- Simplify was silently rejected by the safety guard on already-imperfect meshes and appeared to do nothing.
-- Issue highlights were offset from the model, and did not follow the model after rotation.
-- Rotation re-uploaded the whole mesh on every step; it is now instant with a background sync.
-- Drag-and-drop reported "full path unavailable"; paths now come from the Python-side drop handler.
-- The Open dialog crashed on an invalid file-type filter label.
-- A Unicode console write could abort an operation on Windows.
-- A failing logger could abort a mesh operation.
-- Voxel remesh silently did nothing when scikit-image was missing.
+### Исправлено
+- Ретопология умела возвращать сетку с новыми дырами и split-кусками на топологически сложных моделях;
+  каждый кусок теперь проверяется и чинится MeshFix, либо откатывается на другой движок.
+- Упрощение молча отклонялось страховкой на уже неидеальных сетках и выглядело ничего не делающим.
+- Подсветки проблем смещались от модели и не следовали за моделью после поворота.
+- Поворот перезаливал всю сетку на каждом шаге; теперь мгновенно с фоновой синхронизацией.
+- Drag-and-drop сообщал «full path unavailable»; пути теперь приходят из Python-обработчика сброса.
+- Диалог открытия падал на невалидном фильтре типов файлов.
+- Юникодная запись в консоль умела ронять операцию на Windows.
+- Падающий логгер умел ронять операцию с сеткой.
+- Воксельный ремеш молча ничего не делал без scikit-image.
 
-### Changed
-- Rebuilt UI: minimal dark theme, resizable panel, activity console, XYZ compass, preset views,
-  rotation gizmo, shell colour-coding that no longer clashes with selection or highlight colours.
-- trimesh upgraded to 5.0; Three.js vendored locally so the app works offline.
-- Renamed to **Meshwright** with a new application icon and Geekatplay Studio branding.
+### Изменено
+- Перебранный UI: минимальная тёмная тема, растягиваемая панель, консоль активности, компас XYZ, пресетные виды,
+  гизмо поворота, цветовое кодирование кусков, не спорящее с цветами выбора и подсветки.
+- trimesh поднят до 5.0; Three.js завендорен локально — приложение работает офлайн.
+- Переименовано в **Meshwright** с новой иконкой и брендом Geekatplay Studio.
 
 ## [1.0.0]
-- Initial release: load, analyse, repair, decimate and export STL.
+- Первый релиз: загрузка, анализ, ремонт, децимация и экспорт STL.
+
+Оригинал на английском: [CHANGELOG.en.md](CHANGELOG.en.md).

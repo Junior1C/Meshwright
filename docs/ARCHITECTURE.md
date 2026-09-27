@@ -1,474 +1,295 @@
-# Architecture
+# Архитектура (RU)
 
 ```
-                 ┌──────────────┐        ┌────────────────┐
-                 │  app.py      │        │ mcp_server.py  │
-                 │  pywebview   │        │ MCP over stdio │
-                 └──────┬───────┘        └────────┬───────┘
-                        │  thin adapters, no logic │
-                        └────────────┬─────────────┘
+                  ┌──────────────┐        ┌────────────────┐
+                  │  app.py      │        │ mcp_server.py  │
+                  │  pywebview   │        │ MCP over stdio │
+                  └──────┬───────┘        └────────┬───────┘
+                         │  thin adapters, no logic │  тонкие переходники, без логики
+                         └────────────┬─────────────┘
+                                      ▼
+                         ┌────────────────────────┐
+                         │ engine/service.py      │  validation · state · guard
+                         │ MeshService            │  autosave · history
+                         └───────────┬────────────┘
                                      ▼
-                        ┌────────────────────────┐
-                        │ engine/service.py      │  validation · state · guard
-                        │ MeshService            │  autosave · history
-                        └───────────┬────────────┘
-                                    ▼
-   ┌──────────────┬────────────┬────────────┬─────────────┬──────────────┐
-   │ model_loader │ mesh_      │ mesh_      │ mesh_       │ mesh_exporter│
-   │              │ analysis   │ repair     │ retopo /    │              │
-   │              │            │ cleanup    │ reducer     │              │
-   └──────────────┴────────────┴────────────┴─────────────┴──────────────┘
-        trimesh · MeshLab · MeshFix · Manifold3D · QuadriFlow · scikit-image
+    ┌──────────────┬────────────┬────────────┬─────────────┬──────────────┐
+    │ model_loader │ mesh_      │ mesh_      │ mesh_       │ mesh_exporter│
+    │              │ analysis   │ repair     │ retopo /    │              │
+    │              │            │ cleanup    │ reducer     │              │
+    └──────────────┴────────────┴────────────┴─────────────┴──────────────┘
+         trimesh · MeshLab · MeshFix · Manifold3D · QuadriFlow · scikit-image
 ```
 
-## Principles
+## Принципы
 
-**One engine, many front ends.** `engine/` never imports a UI framework. Adding a capability to
-`MeshService` gives it to the desktop app, the MCP server and Python callers at once.
+**Один движок, много фасадов.** `engine/` никогда не импортирует UI-фреймворк. Добавили возможность в
+`MeshService` — её сразу получили десктоп, MCP-сервер и Python-вызывающие.
 
-**Immutable states.** Every accepted result becomes a numbered `_State` holding its mesh, its
-analysis and its shells. Undo and redo move between states; nothing else ever moves backwards.
-This is why "it reverted my work" cannot happen — a revert is an explicit, undoable operation.
+**Неизменяемые состояния.** Каждый принятый итог становится номерным `_State`: сетка, её
+анализ и её куски. Назад ходят только отмена и возврат; больше ничто никогда не движется назад.
+Поэтому «он откатил мою работу» случиться не может: откат — явная отменяемая операция.
 
-**Measure, do not predict.** Repair stages record a fix only when the diagnostics actually change,
-and the report is a fresh analysis of the returned mesh. Reduction reports real sampled deviation.
+**Мерить, а не предсказывать.** Стадии ремонта записываются в исправления, только когда диагностика реально изменилась,
+а отчёт — свежий анализ возвращённой сетки. Упрощение сообщает реальное семплированное отклонение.
 
-**Refuse to make things worse.** `_commit` compares before and after; a result with more critical
-issues, or with 95 % of the geometry gone, is rejected and the previous state kept. The caller can
-pass `force=True` deliberately.
+**Не делать хуже.** `_commit` сравнивает до и после; итог с выросшими критичными проблемами
+или с потерянными 95% геометрии отклоняется, прошлое состояние остаётся. Вызывающий может
+передать `force=True` — осознанно.
 
-**Crash safety is cheap.** Snapshots are written on a single background thread as compressed `.npz`
-next to a journal, so a 2 M-face save never blocks the UI. A clean exit deletes them; an unclean one
-leaves them for recovery.
+**Дешёвая защита от падений.** Снимки пишутся в одном фоновом потоке сжатым `.npz`
+рядом с журналом: сейв на 2 млн граней UI не вешает. Чистый выход их удаляет; нечистый
+оставляет для восстановления.
 
-**Say what is happening.** Anything that can take more than a moment opens a job: the service emits
-a `start` event carrying the face count and an estimated duration, then a `done` event with the real
-elapsed time. The desktop adapter turns those into the bottom-right notifications; the MCP adapter
-folds them into the `log` array of the tool result. Estimates come from `estimate_seconds()`, which
-is a measured cost-per-million-faces table — deliberately rough, and only ever used to set
-expectations, never to decide anything.
+**Говорить, что происходит.** Всё, что дольше мгновения, открывает работу: сервис шлёт
+событие `start` с числом граней и оценкой времени, затем `done` с реальным временем.
+Десктоп-адаптер превращает их в уведомления справа снизу; MCP-адаптер складывает
+в массив `log` итога инструмента. Оценки — из `estimate_seconds()`: намерянной таблицы
+цены за миллион граней. Намеренно грубо — только задать ожидания, никогда ничего не решать.
 
-## Modules
+Интерфейс десктопа — на русском (кнопка EN/РУ); события прогресса, журнал и технические сообщения движка — на английском.
 
-| File | Responsibility |
+## Модули
+
+| Файл | Отвечает за |
 |---|---|
-| `engine/service.py` | The API. Validation, state stack, safety guard, autosave, history, previews, progress events |
-| `engine/validation.py` | Path, number, choice, index-list and rotation-matrix sanitising |
-| `engine/session_store.py` | Background snapshots, journal, crash-recovery discovery |
-| `engine/model_loader.py` | Format loading with trimesh → ufbx → MeshLab fallbacks |
-| `engine/mesh_analysis.py` | The 12 checks, issue locations, readiness score, before/after diffs |
-| `engine/mesh_repair.py` | Six-stage repair pipeline, repeated until stable, then verified |
-| `engine/mesh_cleanup.py` | Sliver removal: needle collapse and cap flipping |
-| `engine/mesh_retopo.py` | QuadriFlow / isotropic / quadric reduction, per piece, verified |
-| `engine/mesh_reducer.py` | Ratio-based quadric decimation with topology-safe fallback |
-| `engine/mesh_exporter.py` | Unit scaling, winding fix, build-plate alignment, solidity check, seven output formats |
-| `engine/preview.py` | Binary viewport payload; splits UV seams for the GPU and nowhere else |
-| `engine/indexing.py` | Packed-key row de-duplication behind edge, face and corner grouping |
-| `engine/texture_service.py` | Unwrap, PBR generation, texture pack round-trip, GLB bake (mixed into `MeshService`) |
-| `engine/texture/uv_channel.py` | The per-corner UV channel: charts, transfer, GPU/glTF split |
-| `engine/texture/uv_unwrapper.py` | Unwrapping: patch, run xatlas out of process, validate, retry |
-| `engine/texture/uv_patches.py` | Splitting a mesh into patches xatlas can handle; layout validation |
-| `engine/texture/companion_detector.py` | Embedded and companion texture discovery, packed-map unpacking |
-| `engine/texture/material_manager.py` | The active PBR map set, Photoshop round-trip, GLB baking |
-| `engine/texture/pbr_generator.py` | Normal / roughness / metallic / AO / height derived from one image |
-| `engine/texture/seam_fixer.py` | UV mask rasterisation, gutter dilation, tileable edge blending |
-| `engine/stl_exporter.py` | Thin STL-only wrapper kept for older scripts |
-| `engine/demo_model.py` | The built-in broken test object offered on an empty viewport |
-| `ui/js/viewer.js` | Three.js viewport: geometry, shading, highlights, compass, gizmo |
-| `ui/js/app.js` | Panels, console, shortcuts, state UI, dialogs |
+| `engine/service.py` | API. Проверка ввода, стек состояний, страховка, автосейв, история, превью, события прогресса |
+| `engine/validation.py` | Чистка путей, чисел, выборов, списков индексов и матриц поворота |
+| `engine/session_store.py` | Фоновые снимки, журнал, поиск восстановлений после падений |
+| `engine/model_loader.py` | Загрузка форматов: trimesh → ufbx → запасной MeshLab |
+| `engine/mesh_analysis.py` | 12 проверок, места проблем, шкала готовности, диффы до/после |
+| `engine/mesh_repair.py` | Шестистадийный конвейер ремонта, крутится до стабильности, затем проверяется |
+| `engine/mesh_cleanup.py` | Уборка иголок: схлопывание игл и перевороты крышек |
+| `engine/mesh_retopo.py` | Упрощение QuadriFlow / изотропное / quadric, по кускам, с проверкой |
+| `engine/mesh_reducer.py` | Quadric-децимация долей с топологически безопасным запасным путём |
+| `engine/mesh_exporter.py` | Масштаб единиц, правка обхода, посадка на стол, проверка тела, семь форматов |
+| `engine/preview.py` | Бинарный пакет вьюпорта; рвёт УФ-швы для GPU и больше нигде |
+| `engine/indexing.py` | Дедупликация строк пакетированными ключами: края, грани, углы |
+| `engine/texture_service.py` | Развёртка, генерация PBR, круг текстур туда-обратно, запекание GLB (подмешано в `MeshService`) |
+| `engine/texture/uv_channel.py` | Канал УФ по углам: чарты, перенос, сплит под GPU/glTF |
+| `engine/texture/uv_unwrapper.py` | Развёртка: нарезка, запуск xatlas вне процесса, проверка, повторы |
+| `engine/texture/uv_patches.py` | Нарезка сетки на куски, которые xatlas жуёт; проверка раскладки |
+| `engine/texture/companion_detector.py` | Поиск вшитых и соседних текстур, разбор пакетных карт |
+| `engine/texture/material_manager.py` | Активный набор PBR-карт, круг через Photoshop, запекание GLB |
+| `engine/texture/pbr_generator.py` | Нормаль / шероховатость / металл / затенение / высота из одной картинки |
+| `engine/texture/seam_fixer.py` | Растеризация УФ-маски, заливка швов, бесшовные края тайлов |
+| `engine/stl_exporter.py` | Тонкая STL-обёртка для старых скриптов |
+| `engine/demo_model.py` | Встроенный битый тестовый объект с пустого вьюпорта |
+| `ui/js/i18n.js` | Словарь EN/РУ, переключатель языка интерфейса |
+| `ui/js/viewer.js` | Three.js-вьюпорт: геометрия, затенение, подсветки, компас, гизмо |
+| `ui/js/app.js` | Панели, консоль, хоткеи, UI состояний, диалоги |
 
-## Data flow for one operation
+## Путь одной операции
 
-1. Adapter calls e.g. `svc.repair(strict_watertight=True)`.
-2. Service validates arguments and takes the lock.
-3. The algorithm runs, logging each step (the log reaches the UI console live).
-4. `_commit` splits shells, analyses the exact mesh it will keep, and compares with the previous state.
-5. Rejected → previous state kept, reason returned. Accepted → new state, snapshot queued, history appended.
-6. The result carries the analysis, stats, shells and a compact binary preview.
+1. Адаптер зовёт, скажем, `svc.repair(strict_watertight=True)`.
+2. Сервис проверяет аргументы и берёт замок.
+3. Алгоритм работает, логируя каждый шаг (лог живо едет в консоль UI).
+4. `_commit` режет куски, анализирует ровно ту сетку, что оставит, и сравнивает с прошлым состоянием.
+5. Отклонено — прошлое состояние остаётся, причина возвращается. Принято — новое состояние, снимок в очередь, история дописана.
+6. Итог несёт анализ, статистику, куски и компактное бинарное превью.
 
-## Texture coordinates live beside the mesh, not inside it
+## Текстурные координаты живут рядом с сеткой, а не внутри
 
-A UV is a property of a *face corner*, not of a vertex. Two faces meeting along a seam
-share a position but need different UVs there, so the usual per-vertex storage forces
-that vertex to be duplicated.
+УФ — свойство *угла грани*, а не вершины. Две грани вдоль шва делят позицию, а УФ там нужны разные — вот обычное хранение по вершинам и вынуждает дублировать вершину.
 
-That duplication is harmless to a renderer and poisonous to a mesh analyser. A split
-vertex breaks the edge that joined two triangles, so a watertight solid with a normal
-UV layout reads as a pile of disconnected shells with hundreds of open boundary edges —
-and the repair pipeline dutifully closes holes that were never there. Measured on a
-clean textured sphere before this was fixed: load reported *Repair required, score 59,
-9 shells*; decimating to 25% pushed it to 201 shells; repair then inflated 1,279 faces
-into 168,811.
+Дублирование безвредно для рендера и ядовито для анализа сетки. Раздвоенная вершина рвёт ребро, соединявшее два треугольника, — и герметичное тело с обычной УФ-раскладкой читается кучей несвязанных кусков с сотнями открытых граничных краёв, а конвейер ремонта старательно закрывает дыры, которых не было. Замерено на чистой текстурированной сфере до починки: загрузка говорила *«Требуется ремонт», 59, 9 кусков*; децимация до 25% доводила до 201 куска; ремонт раздувал 1 279 граней до 168 811.
 
-So Meshwright keeps UVs in a separate `(F, 3, 2)` array — one UV per corner of every
-face — held on `_State` next to the mesh:
+Поэтому Meshwright держит УФ в отдельном массиве `(F, 3, 2)` — по УФ на угол каждой грани — на `_State` рядом с сеткой:
 
 ```
 _State
-├── mesh      welded trimesh: real topology, what analysis and repair see
-└── uv        (F, 3, 2) float32, or None
+├── mesh      сваренный trimesh: настоящая топология, её видят анализ и ремонт
+└── uv        (F, 3, 2) float32 или None
 ```
 
-**Nothing in the geometry pipeline knows about it.** `mesh_repair`, `mesh_reducer`,
-`mesh_cleanup` and `mesh_retopo` take a mesh and return a mesh. `_commit` then carries
-the UV channel from the old state onto the new geometry in one place, via
+**О нём не знает ничего в геометрическом конвейере.** `mesh_repair`, `mesh_reducer`,
+`mesh_cleanup` и `mesh_retopo` берут сетку и отдают сетку. А `_commit` затем переносит
+УФ-канал со старого состояния на новую геометрию в одном месте — через
 `uv_channel.transfer()`.
 
-`transfer()` projects every corner of the new mesh to its closest point on the *source
-surface* — an exact AABB query through `trimesh.proximity` (Rtree), not a
-nearest-centroid guess — and reads the UV interpolated there. A corner whose closest
-source face sits in a different UV chart from the rest of its own face would drag a
-texel from the far side of the atlas, so those are re-evaluated against the chart the
-face actually belongs to. Chart membership comes from `chart_labels()`: a connected-
-components pass over face adjacency where two neighbours join only if they agree on the
-UV at both ends of their shared edge.
+`transfer()` проектирует каждый угол новой сетки на ближайшую точку *исходной
+поверхности* — точным AABB-запросом через `trimesh.proximity` (Rtree), а не
+гаданным «ближайшим центроидом», — и читает проинтерполированную там УФ. Угол, чья ближайшая
+исходная грань сидит в чужом УФ-чарте относительно остальной его грани, притащил бы
+тексель с дальнего конца атласа — такие переоцениваются внутри чарта, которому принадлежит
+грань. Принадлежность чартам — из `chart_labels()`: связные компоненты по смежности граней, где
+соседи соединяются, только если сходятся по УФ на обоих концах общего ребра.
 
-Measured drift on a seam-free test surface with an exactly known UV map, in texels on a
-2048 px map (the previous scheme in brackets):
+Замеренный дрейф на бесшовной тестовой поверхности с точно известной УФ (в скобках — прежняя схема), в текселях карты 2048:
 
-| Operation | Mean | Worst |
+| Операция | В среднем | Худший |
 |---|---|---|
-| Decimate to 50% | 0.01 (9.9) | 0.04 (82) |
-| Decimate to 10% | 0.03 (29.3) | 0.12 (175) |
-| Decimate to 2% | 0.14 (75.9) | 0.46 (394) |
-| Repair | 3.33 (12.9) | 23.6 (775) |
+| Децимация до 50% | 0,01 (9,9) | 0,04 (82) |
+| Децимация до 10% | 0,03 (29,3) | 0,12 (175) |
+| Децимация до 2% | 0,14 (75,9) | 0,46 (394) |
+| Ремонт | 3,33 (12,9) | 23,6 (775) |
 
-Vertices are split into the per-vertex form at exactly two boundaries, and both are
-edges of the system rather than parts of it:
+Вершины в повершинную форму распускаются ровно на двух границах, и обе — края системы, а не её части:
 
-- `preview.py` → the GPU vertex buffer. Open-edge overlays are still found on the welded
-  mesh and re-pointed at the split buffer through `split_for_gpu`'s `vertex_map`.
-- `mesh_exporter.py` / `material_manager.py` → OBJ, glTF and GLB. STL, PLY, OFF and 3MF
-  carry no UVs and are written from the welded mesh unchanged.
+- `preview.py` → вершинный буфер GPU. Оверлей открытых краёв ищется на сваренной сетке и переуказывается на распущенный буфер через `vertex_map` из `split_for_gpu`.
+- `mesh_exporter.py` / `material_manager.py` → OBJ, glTF и GLB. STL, PLY, OFF и 3MF УФ не несут — пишутся со сваренной сетки как есть.
 
-`unwrap_corner_uv()` follows the same rule: xatlas returns a vertex-split mesh, and its
-split is unpacked straight back into a corner array. Unwrapping therefore does not touch
-the geometry at all — a print-ready model stays *Print ready, score 100, watertight*
-and simply gains texture coordinates.
+`unwrap_corner_uv()` живёт по тому же правилу: xatlas отдаёт распущенную по вершинам сетку, и её распущенность распаковывается напрямую обратно в угловой массив. Развёртка тем самым геометрию вообще не трогает — готовая к печати модель остаётся *«Готово к печати», 100, герметично* и просто обзаводится текстурными координатами.
 
-## Working around xatlas
+## Обходные вокруг xatlas
 
-xatlas is the right unwrapper and there is no pip-installable alternative that
-segments and packs charts. Version 0.0.11 also has two failure modes that ordinary
-3D-printing models walk straight into. Both were found by measurement here, and both
-are worked around by controlling what xatlas is given.
+xatlas — правильный разворачиватель, а pip-устанавливаемой альтернативы с нарезкой и упаковкой чартов нет. У версии 0.0.11 два режима отказа, в которые обычные модели для печати влетают с разбегу. Оба найдены здесь замерами, оба обходятся тем, что дают xatlas на вход.
 
-**It crashes on closed surfaces.** On a mesh where every edge has an opposite —
-precisely what a watertight, print-ready model is — `createBoundaries` never marks a
-boundary vertex, and the convex-hull pass then reads uninitialised data (upstream
-[jpcy/xatlas#146](https://github.com/jpcy/xatlas/issues/146)). An 81,920-face
-icosphere takes the process down with an access violation. Remove one triangle so the
-surface has a boundary and the same mesh unwraps in 0.1 s. Small closed meshes happen
-to survive, but they are relying on the same uninitialised read.
+**Падает на замкнутых поверхностях.** На сетке, где у каждого ребра есть парное, — ровно то, чем является герметичная готовая модель, — `createBoundaries` не метит ни одной граничной вершины, и проход по выпуклой оболочке читает неинициализированные данные (апстрим [jpcy/xatlas#146](https://github.com/jpcy/xatlas/issues/146)). Икосфера на 81 920 граней кладёт процесс нарушением доступа. Убери один треугольник, чтобы появилась граница, — та же сетка разворачивается за 0,1 с. Мелкие замкнутые сетки случайно выживают — на том же неинициализированном чтении.
 
-**It gives up quietly above about 40,000 faces.** Past that it stops segmenting and
-returns one chart covering the whole surface, with no error. Measured total UV area of
-1.02–1.57 inside a unit square, where anything above 1.0 is overlap, and a texture
-painted on it smears.
+**Молча сдаётся выше примерно 40 000 граней.** Дальше нарезка прекращается и возвращается один чарт на всю поверхность — без ошибки. Замеренная суммарная УФ-площадь 1,02–1,57 внутри единичного квадрата, где всё выше 1,0 — наложение, а текстура на нём мажется.
 
-So `uv_patches.split_into_patches()` breaks the mesh into groups that are each **open**
-and **under a face cap**, and they all go into one atlas so they still pack into a
-single texture. A component that is already open and small enough is passed through
-whole, so a model xatlas could have handled gains no extra seams.
+Поэтому `uv_patches.split_into_patches()` режет сетку на группы, каждая из которых **открыта** и **под колпаком граней**, и все едут в один атлас — упаковываются всё равно в одну текстуру. Компонент, который и так открыт и мелкий, идёт целиком: что xatlas осилил бы сам, лишних швов не получает.
 
-Then the result is checked rather than trusted:
+А итог проверяется, а не принимается на веру:
 
-- `validate()` rejects non-finite values, UVs outside the atlas, and total UV coverage
-  above 0.95 — the signature of overlapping charts.
-- `texel_spread()` measures how unevenly the texture is stretched, as the ratio between
-  the 95th and 5th percentile of per-triangle texel density. 1.0 is perfectly even.
+- `validate()` бракует не-числа, УФ вне атласа и суммарное УФ-покрытие выше 0,95 — подпись наложенных чартов.
+- `texel_spread()` меряет, насколько неровно растянута текстура: отношение 95-го к 5-му процентилю потексельной плотности треугольников. 1,0 — идеально ровно.
 
-If the layout is invalid, or merely uneven, the patch cap is halved and it is tried
-again — up to three times, keeping the most even valid result. This matters because
-xatlas's own segmentation is erratic at size: on an 81,920-face sphere the texel spread
-was 18.1× at 20,480 faces per patch, 9.1× at 10,240 and 2.2× at 5,120, while a
-180,000-face torus was already 1.2× at 22,500. No single constant serves both, so the
-system measures instead of guessing.
+Негодная или просто неровная раскладка — колпак режется вдвое и пробуется снова, до трёх раз, из годных оставляется ровнейшая. Это важно, потому что собственная нарезка xatlas на размере нестабильна: на сфере 81 920 граней разброс текселей был 18,1× при 20 480 граней на патч, 9,1× при 10 240 и 2,2× при 5 120, а тор на 180 000 граней давал 1,2× уже при 22 500. Одной константы на всех нет — система меряет, а не гадает.
 
-Measured after this change — every one of these previously crashed or took minutes:
+Замерено после изменения — всё ниже или падало, или уходило в минуты:
 
-| Model | Faces | Time | Patches | Islands | Texel spread |
+| Модель | Граней | Время | Патчей | Островов | Разброс текселей |
 |---|---|---|---|---|---|
-| Icosphere | 20,480 | 1.1 s | 2 | 10 | 1.21 |
-| Icosphere | 81,920 | 1.1 s | 16 | 16 | 2.20 |
-| Icosphere | 327,680 | 2.4 s | 32 | 32 | 1.40 |
-| Torus | 180,000 | 2.5 s | 24 | 60 | 1.15 |
-| Open surface | 159,048 | 3.9 s | 24 | 24 | 1.26 |
+| Икосфера | 20 480 | 1,1 с | 2 | 10 | 1,21 |
+| Икосфера | 81 920 | 1,1 с | 16 | 16 | 2,20 |
+| Икосфера | 327 680 | 2,4 с | 32 | 32 | 1,40 |
+| Тор | 180 000 | 2,5 с | 24 | 60 | 1,15 |
+| Открытая поверхность | 159 048 | 3,9 с | 24 | 24 | 1,26 |
 
-That last row was **121 seconds** when handed to xatlas whole, and with *higher*
-distortion (0.79–1.24 against 0.87–1.10).
+Последняя строка целиком в xatlas занимала **121 секунду** — и с *большей* дисторсией (0,79–1,24 против 0,87–1,10).
 
-`_xatlas_worker.py` still runs the whole thing in a child process. The known failure
-modes are designed around now, but xatlas is native code and an unknown crash in it
-would close the window without a word; one process spawn is cheap insurance. The worker
-imports nothing from Meshwright — numpy and xatlas only — so it can be launched by file
-path with no `sys.path` setup.
+`_xatlas_worker.py` всё равно гоняет всё в дочернем процессе. Известные режимы отказа теперь обходятся стороной, но xatlas — нативный код, и неизвестное падение в нём закрыло бы окно без слова; один спавн процесса — дешёвая страховка. Воркер ничего из Meshwright не импортирует — только numpy и xatlas, — запускается путём к файлу без настройки `sys.path`.
 
-### What the layouts actually measure
+### Что раскладки реально намеряют
 
-`tests/test_uv_unfold.py` rasterises the atlas rather than trusting `validate()`,
-which screens on total UV area and so cannot see a small island resting on a big one.
-Across spheres, boxes, tori, cylinders, capsules, an open surface, a multi-part model
-and the sample models, every layout comes back with **0.000% of used texels claimed
-twice**, a round trip of **under 0.2% of model size** at the 99th percentile, and
-texel spread between 1.00 and 1.34. Unwrapping leaves vertex positions bit-identical;
-it reorders the face table, and the per-corner UVs are reordered with it.
+`tests/test_uv_unfold.py` растеризует атлас, а не верит `validate()`: тот смотрит суммарную УФ-площадь и мелкий остров на большом не видит. По сферам, боксам, торам, цилиндрам, капсулам, открытой поверхности, многокомпонентной модели и семпл-моделям каждая раскладка возвращается с **0,000% дважды заявленных используемых текселей**, круговым проходом **меньше 0,2% размера модели** на 99-м процентиле и разбросом текселей 1,00–1,34. Развёртка оставляет позиции вершин побитово теми же; таблицу граней переупорядочивает, а поугловые УФ переупорядочиваются с ней.
 
-### Two things the unfold does not do
+### Две вещи, которых развёртка не делает
 
-**Chart handedness is not consistent.** Between 11% and 50% of faces come back
-reflected — walking the surface anticlockwise from outside walks *clockwise* across
-the texture. Authored layouts do not look like this: a Meshy export measures
-2,964,400 faces one way round and none the other. It costs nothing while Meshwright
-is both writing and sampling through the same coordinates, which is why the round
-trip is exact regardless. It costs something the moment a person paints on the
-exported UV guide, because lettering on a reflected island comes back mirrored.
+**Направление обхода чартов не консистентно.** От 11% до 50% граней возвращаются отражёнными: идёшь по поверхности против часовой снаружи — по текстуре идёшь *по* часовой. Авторские раскладки так не выглядят: экспорт Meshy намеряет 2 964 400 граней в одну сторону и ноль в другую. Пока Meshwright и пишет, и читает через те же координаты — ничего не стоит: круговой проход точен всё равно. Стоит, как только человек рисует на экспортном УФ-гиде: надписи на отражённом острове возвращаются зеркальными.
 
-The cause is xatlas's packer, which mirrors charts to pack them tighter and offers no
-option not to. `ChartOptions.fix_winding` is about face winding inside a chart and
-does not address it (measured: it moved a box from 8 reflected faces to 4, and made a
-torus worse). Reflecting the charts ourselves afterwards does not work either, because
-the packer nests charts into each other's concavities — a reflected chart stays inside
-its own bounding box and still collides, measured at 1.9% of texels on a sphere.
-Correcting this properly means packing the atlas ourselves and accepting whatever
-utilisation a rectangle packer gives up against xatlas's nesting.
+Причина — упаковщик xatlas: зеркалит чарты ради плотности, неотключаемо. `ChartOptions.fix_winding` про обход граней внутри чарта и не про это (замерено: бокс с 8 отражённых граней ушёл на 4, а тор стал хуже). Отражать чарты самим после тоже не выходит: упаковщик вкладывает чарты в вогнутости друг друга — отражённый чарт остаётся в своём боксе и всё равно коллизирует, намерено 1,9% текселей на сфере. Правится по-честному собственной упаковкой атласа — ценой того, что отдаст прямоугольный упаковщик против плотной вкладки xatlas.
 
-**Decimation across a UV seam leaves a few stretched triangles.** When a collapse
-merges geometry from two different islands, the new triangle's corners genuinely
-belong to different parts of the atlas and no single chart holds all three. Taking a
-2.96M-face model to 40,000: **46 faces, 0.115%, holding 0.90% of the UV area**, the
-worst at 36× normal texel density. At 200,000 faces it is 287 faces, 0.144%. Two
-alternatives were measured and both were worse — clamping the barycentric
-extrapolation gives 71 such faces, and searching for the nearest source face inside
-the anchor's own chart gives 63. The current code is the best of the three.
+**Децимация через УФ-шов оставляет горсть растянутых треугольников.** Когда схлопывание сливает геометрию двух разных островов, углы нового треугольника правда принадлежат разным местам атласа, и одного чарта на все три нет. Спуск модели 2,96 млн граней до 40 000: **46 граней, 0,115%, держат 0,90% УФ-площади**, худшая — 36× нормальной плотности текселей. На 200 000 граней — 287 граней, 0,144%. Две альтернативы замерены и обе хуже: кламп барицентрической экстраполяции даёт 71 такую грань, а поиск ближайшей исходной грани внутри чарта якоря — 63. Текущий код — лучший из трёх.
 
-## Texture data is fetched, not pushed
+## Данные текстур подтягиваются, а не расталкиваются
 
-Encoding a six-channel 2048px PBR set to base64 costs about 375 ms and 12.8 MB.
-That was being paid on *every* operation, because the result of a repair, a reduce,
-an undo or even a rotate carried the maps with it. The MCP server was worse: its
-`_strip()` dropped the binary preview but not the textures, so one `repair` on a
-textured model returned 9.27 MB to an assistant reading through a context window.
+Кодирование PBR-набора 2048 в шесть каналов в base64 стоит около 375 мс и 12,8 МБ. Платилось на *каждой* операции: итог ремонта, упрощения, отмены и даже поворота тащил карты с собой. MCP-сервер хуже: его `_strip()` сбрасывал бинарное превью, но не текстуры — один `repair` текстурированной модели возвращал ассистенту 9,27 МБ сквозь контекстное окно.
 
-So results carry a summary and nothing else:
+Поэтому итоги несут сводку и ничего больше:
 
 ```
 "textures": { "has_textures": true, "has_uv": true,
               "texture_version": 3, "channels": ["albedo", "normal", …] }
 ```
 
-`MaterialManager.version` is bumped whenever a channel actually changes. The UI
-holds the last version it fetched and calls `get_texture_maps()` only when the two
-differ; the UV wireframe comes from `get_uv_layout()` when the 2D view opens, keyed
-on `state_id`. Measured on the same six-channel set:
+`MaterialManager.version` бампается, когда канал реально изменился. UI помнит последнюю скачанную версию и зовёт `get_texture_maps()`, только когда разошлись; УФ-каркас — из `get_uv_layout()` при открытии 2D-вида, по `state_id`. Замерено на том же шестиканальном наборе:
 
-| | Before | After |
+| | Было | Стало |
 |---|---|---|
-| One operation result | 375 ms · 12.8 MB | **1.4 ms · 0.17 kB** |
-| One MCP tool result | 9.27 MB | **under 1 kB** |
-| Ten operations in a row | ~3,700 ms | **12 ms** |
+| Итог одной операции | 375 мс · 12,8 МБ | **1,4 мс · 0,17 кБ** |
+| Один итог MCP-инструмента | 9,27 МБ | **меньше 1 кБ** |
+| Десять операций подряд | ~3 700 мс | **12 мс** |
 
-The maps still cost 375 ms to encode — but once, when they change, instead of on
-every undo.
+375 мс на кодирование остались — но раз, когда изменилось, а не на каждую отмену.
 
-## Seam gutters
+## Швы-канавки
 
-The unwrapper splits models into patches, so there are more seams than a
-single-chart layout would have. A texture only covers the triangles of the layout;
-the gutters between charts are empty, and GPU filtering and mipmapping blend that
-emptiness in as dark fringes along every seam.
+Разворачиватель режет модели на патчи — швов больше, чем в одночартной раскладке. Текстура покрывает только треугольники раскладки; канавки между чартами пусты, и GPU-фильтрация с мипмэппингом подмешивают пустоту тёмной каёмкой вдоль каждого шва.
 
-`seam_fixer.dilate_map_set()` bleeds the surface colours outward before anything
-leaves the app — the exported texture pack and the baked GLB both go through it, and
-so does any OBJ/glTF export that carries a material. The UV mask is rasterised once
-per texture size and shared across all six channels; it used to be rebuilt per
-channel. The maps held in memory are never modified: padding produces copies, so
-what the user loaded is what they still have.
+`seam_fixer.dilate_map_set()` перед выходом наружу протягивает цвета поверхности наружу: экспортный пак текстур и запечённый GLB идут через него, как и любой экспорт OBJ/glTF с материалом. УФ-маска растеризуется раз на размер текстуры и делится на все шесть каналов; раньше строилась на канал. Карты в памяти не трогаются: заливка даёт копии, так что загруженное остаётся загруженным.
 
-## Why loading a dense model is fast
+## Почему загрузка плотной модели быстрая
 
-Two things dominate a large load, and both were once far worse than they needed to be.
+Два доминанта большой загрузки, и оба были куда хуже нужного.
 
-**Reindex, don't re-project.** Separating a multi-body model renumbers its faces, so
-`_prepare()` returns the permutation it applied and `_commit()` reindexes the UV
-channel with it. Before, that permutation was thrown away and the channel was rebuilt
-by projecting every corner onto the old surface — twenty million closest-point queries
-against five million faces, which on the test model ran for over ten minutes to
-recover a mapping that was already correct. Re-projection is now reserved for the case
-that genuinely needs it: geometry that actually changed.
+**Переиндексируй, не перепроецируй.** Разделение многомодельника перенумеровывает грани: `_prepare()` отдаёт применённую перестановку, а `_commit()` переиндексует ею УФ-канал. Раньше перестановка выбрасывалась, а канал перестраивался проекцией каждого угла на старую поверхность — двадцать миллионов запросов ближайшей точки к пяти миллионам граней: на тестовой модели больше десяти минут ради отображения, которое уже было верным. Перепроекция осталась на случай, где правда нужна: геометрия, которая реально изменилась.
 
-**Group rows by packing, not by sorting bytes.** Which edges are open, which faces are
-duplicates, which corners can be welded — all the same question, and
-`numpy.unique(axis=0)` answers it by viewing each row as an opaque block and sorting
-those. `engine/indexing.py` packs each row into one 64-bit integer instead, shifting
-each column down by its own minimum so only its range costs bits. The result is
-identical; where the values will not fit, the original path still runs.
+**Группируй строки упаковкой, а не сортировкой байтов.** Какие края открыты, какие грани дубли, какие углы сварить — один вопрос, и `numpy.unique(axis=0)` отвечает на него, глядя на каждую строку как на непрозрачный блок и сортируя такие. `engine/indexing.py` вместо этого пакует каждую строку в одно 64-битное целое, сдвигая каждый столбец на его минимум, чтобы биты стоили только диапазону. Итог идентичен; где значения не лезут — едет старый путь.
 
-Measured on a 225 MB FBX with 4,984,030 triangles:
+Замерено на FBX 225 МБ с 4 984 030 треугольниками:
 
-| Stage | Was | Now |
+| Стадия | Было | Стало |
 |---|---|---|
-| Whole load | did not finish | **27 s** |
-| Viewport vertex buffer | 5.6 s | **1.8 s** |
-| Diagnostics pass | 10.1 s | **7 s** |
-| FBX read and weld | 8.4 s | **6 s** |
+| Вся загрузка | не заканчивалась | **27 с** |
+| Вершинный буфер вьюпорта | 5,6 с | **1,8 с** |
+| Проход диагностики | 10,1 с | **7 с** |
+| Чтение и сварка FBX | 8,4 с | **6 с** |
 
-What remains is honest work: the diagnostics themselves, shell separation, and
-serialising the viewport payload — which for this model is 147 MB of base64 (60 MB of
-indices, 31 MB of positions, 21 MB of UVs). That payload, not the backend, is the next
-thing worth attacking; it wants a viewport level of detail rather than a faster encoder.
+Остаток — честная работа: сама диагностика, разделение кусков и сериализация пакета вьюпорта: для этой модели 147 МБ base64 (60 МБ индексов, 31 МБ позиций, 21 МБ УФ). Этот пакет, а не энкодер, — следующая цель; ему нужен LOD вьюпорта, а не энкодер побыстрее.
 
-## Viewport level of detail
+## Детализация вьюпорта
 
-A five-million-triangle model is 147 MB of base64 by the time it reaches the page. So
-`preview.py` decimates above a face cap — the *display* only. The mesh, the
-diagnostics, every operation and every export use all of it.
+Модель на пять миллионов треугольников — это 147 МБ base64 к моменту прибытия на страницу. Поэтому `preview.py` выше колпака граней децимирует — *только картинку*. Сетка, диагностика, каждая операция и каждый экспорт идут по всему.
 
-Two details make that honest rather than a lie the user has to discover:
+Две детали делают это честным, а не ложью, которую открывают потом:
 
-- **Decimation is per shell.** The viewport colours separate pieces by walking the
-  face array in shell order, so reducing the whole mesh at once would shuffle that
-  correspondence. Each shell is reduced on its own and the new per-piece counts go
-  back with the payload.
-- **The open-edge overlay is dropped while reduced**, because it would be marking
-  edges of the simplified copy. The result says so, and the interface says so.
+- **Децимация покусочно.** Вьюпорт красит отдельные куски, идя по массиву граней в порядке кусков, — упрощение всей сетки разом перетасовало бы соответствие. Каждый кусок упрощается сам, новые покусочные счётчики едут с пакетом.
+- **Оверлей открытых краёв на упрощённом сбрасывается**: он метил бы края упрощённой копии. Итог так и говорит, интерфейс так и говорит.
 
-UVs come across through a nearest-vertex lookup rather than an exact replay:
-`fast_simplification`'s `replay_simplification` gives an exact mapping but measured
-9.6 seconds against 0.7 for a KD-tree query, on a decimation that itself took 4. For a
-mesh that exists to be looked at, that trade is the right way round.
+УФ едут поиском ближайшей вершины, а не точным реплеем: `replay_simplification` из `fast-simplification` даёт точное отображение, но намерено 9,6 секунд против 0,7 у KD-дерева — при децимации, стоившей 4. Для сетки, существующей чтобы на неё смотрели, размен верный.
 
-## Working around ufbx
+## Обходные вокруг ufbx
 
-FBX is parsed with ufbx rather than trimesh, which cannot open the format at all. That
-has a consequence worth stating plainly: **if the ufbx pass does not lift a texture off
-the scene, nothing downstream ever will.** The companion-file scan looks for images
-*beside* the model, and a file that embeds its artwork leaves none there. A 228 MB Hi3D
-export with an 8192×8192 JPEG inside it opened as an untextured grey model for exactly
-that reason — the parser only ever read geometry and UVs.
+FBX парсится ufbx, а не trimesh: тот формат вообще не открывает. Отсюда следствие, сказанное прямо: **если проход ufbx не снял текстуру со сцены — ниже по течению её не будет никогда.** Скан соседних файлов ищет картинки *рядом* с моделью, а файл со вшитым artwork рядом ничего не оставляет. Экспорт Hi3D на 228 МБ с JPEG 8192×8192 внутри открывался нетекстурированной серой моделью ровно поэтому: парсер читал только геометрию и УФ.
 
-`_load_fbx` now reads the material as well, through ufbx's `pbr` view. ufbx normalises
-Phong, Lambert, Arnold, Maya's standard surface and Blender's Principled onto one set
-of named slots, so reading `pbr.base_color` and friends is both shorter and far more
-reliable than matching FBX property-name strings, which differ per exporter. The `fbx`
-view is consulted afterwards for older materials that do not reach the pbr one.
+`_load_fbx` теперь читает и материал — через `pbr`-вид ufbx. ufbx нормализует Phong, Lambert, Arnold, стандартный Maya и Principled Blender на один набор именованных слотов: читать `pbr.base_color` и друзей короче и куда надёжнее, чем матчить строки имён FBX-свойств, различающиеся от экспортёра к экспортёру. `fbx`-вид опрашивается после — для старых материалов, не дотянувших до pbr.
 
-### The scene has to die before anything large is allocated
+### Сцена должна умереть раньше, чем выделится что-то большое
 
-This is the part that will look arbitrary and must not be tidied away. **Allocating a
-large image while the ufbx scene is still referenced corrupts its teardown**, and the
-process dies with an access violation the moment the scene is freed — deterministically,
-with no Python traceback, in a place unrelated to the cause. Reduced to its smallest
-form: decode the embedded 8192² JPEG, return from the function, crash. Copy the bytes
-out, release the scene, *then* decode, and it is fine.
+Это место выглядит произвольным, и прибираться не должно. **Выделение большой картинки, пока сцена ufbx ещё захвачена, портит её разбор**: процесс умирает нарушением доступа в момент освобождения сцены — детерминированно, без питоновского трейсбэка, в месте, не связанном с причиной. В наименьшей форме: декодируй вшитый JPEG 8192², вернись из функции, упади. Скопируй байты, отпусти сцену, *потом* декодируй — и всё хорошо.
 
-So the work is split. `fbx_texture_blobs` walks the materials and returns raw bytes or
-file paths — never an image. `_load_fbx` keeps the scene as its own local and hands back
-a mesh built from copies, so everything ufbx owns is gone by the time it returns. Only
-then does `load_model` call `decode_fbx_textures`. Keeping the scene a local of that one
-function is what enforces the ordering; hoisting it back into `load_model` brings the
-crash back. `tests/test_fbx_textures.py` asserts the split from both ends.
+Поэтому работа поделена. `fbx_texture_blobs` обходит материалы и отдаёт сырые байты или пути — никогда картинку. `_load_fbx` держит сцену своим локалом и возвращает сетку из копий: всё, чем владеет ufbx, исчезает к возврату. И только затем `load_model` зовёт `decode_fbx_textures`. Локальность сцены в одной функции и навязывает порядок; подъём обратно в `load_model` возвращает падение. `tests/test_fbx_textures.py` утверждает раздел с обоих концов.
 
-Releasing the scene earlier also cut peak memory on that model from 2.4 GB to 0.95 GB.
+Раннее освобождение сцены срезало и пик памяти на той модели с 2,4 ГБ до 0,95 ГБ.
 
-### A stub must not outrank the artwork
+### Плейсхолдер не должен побеждать настоящую текстуру
 
-The visual built for an FBX is a bare `TextureVisuals` carrying UVs, and its default
-material reports a 2×2 image. `extract_embedded_textures` finds that first, so the merge
-in `load_model` is `embedded.update(fbx_maps)` and not `setdefault`: a stub arriving
-first would keep the real map out, then be discarded further down as a placeholder,
-leaving a fully textured model looking as though it had none.
+Визуал под FBX — голый `TextureVisuals` с УФ, а его материал по умолчанию сообщает картинку 2×2. `extract_embedded_textures` находит её первой: слияние в `load_model` — `embedded.update(fbx_maps)`, а не `setdefault`: пришедшая первой заглушка не пустила бы настоящую карту, а дальше сама отбросилась бы как плейсхолдер — и полностью текстурированная модель выглядела бы не имеющей ничего.
 
-## Working around QuadriFlow
+## Обходные вокруг QuadriFlow
 
-Like xatlas, QuadriFlow is native code that can abort rather than fail — an Eigen
-assertion, which in-process ends the application mid-retopology. It runs in a child
-process (`engine/_quadriflow_worker.py`) with a two-minute budget per piece, and a
-crash or a timeout falls through to the engines that are predictable.
+Как xatlas, QuadriFlow — нативный код, умеющий не ошибаться, а аварийно завершаться: аварийное завершение внутри Eigen, которое в том же процессе заканчивает приложение посреди ретопологии. Крутится в дочернем процессе (`engine/_quadriflow_worker.py`) с бюджетом две минуты на кусок; падение или простой скатываются на предсказуемые движки.
 
-Its cost genuinely is unpredictable: on one model, from the same source at different
-decimation levels, 2 s at 20,000 faces, over four minutes at 32,000 and 72,000, then
-7.5 s at 189,000. There is no input size that makes it reliable, which is why the
-answer is a bounded wait and a good fallback rather than tuning.
+Его цена правда непредсказуема: на одной модели, с одного исходника на разных децимациях, 2 с на 20 000 граней, больше четырёх минут на 32 000 и 72 000, затем 7,5 с на 189 000. Надёжного размера входа нет — поэтому ответ «ограниченное ожидание и хороший запасной», а не настройка.
 
-## The walking cup
+## Ходячая чашка
 
-`ui/js/walker.js` hangs off the progress events the engine already emits, so nothing
-in the engine knows he exists. `WALKS_FOR` in `ui/js/app.js` picks the two he turns out
-for — `load` and `export`, plus `bake_glb`, which is an export by another name. Every
-long job emits progress, and hanging him off all of them put him on screen for most of
-a session, which makes him scenery rather than a signal; the rest show the progress
-toast, which is what you watch when you are waiting on a step rather than on the file.
-The gate has to cover the stop as well as the start, or a repair finishing counts down
-the load he is actually walking for.
+`ui/js/walker.js` висит на событиях прогресса, которые движок и так шлёт, — в движке о ней не знает ничего. `WALKS_FOR` в `ui/js/app.js` выбирает двоих, ради кого она выходит, — `load` и `export` плюс `bake_glb`, который экспорт под другим именем. Каждая долгая работа шлёт прогресс, а повесить её на все — значит держать на экране большую часть сессии: тогда она фон, а не сигнал; остальное показывает тост прогресса — на него и смотрят, когда ждут шаг, а не файл. Фильтр обязан крыть и остановку, а не только старт: иначе финиш ремонта гасит отсчёт загрузки, ради которой она реально идёт.
 
-Those operation names are a string contract across the two languages, so a rename in
-`service.py` would not break loudly — the cup would just stop turning up, which nobody
-would report as a bug. `tests/test_walker_states.py` checks the set against the jobs the
-engine really emits.
+Имена операций — строковый контракт двух языков: переименование в `service.py` громко не сломается — чашка просто перестанет выходить, о чём никто не сообщит как о баге. `tests/test_walker_states.py` сверяет набор с работами, которые движок реально шлёт.
 
-Two details are worth keeping if it is ever touched. The sprite is an image eight
-frames wide translated inside a one-frame window, not a `background-position`
-animation: a percentage in `translateX` is a percentage of the element itself, so
-`-12.5%` of an eight-frame strip is exactly one frame, while `background-position`
-percentages are measured against the difference between the box and the image and
-land between frames. And the bob, the lean and the balloon's wobble all run on
-different clocks from the walk — overlapping timings that never quite line up are
-what make a rubber-hose walk read as drawn rather than as a sprite on rails.
+Две детали стоит беречь, если трогать. Спрайт — картинка в восемь кадров, едущая внутри однооконного кадра, а не анимация `background-position`: процент в `translateX` — процент самого элемента, так что `-12.5%` восьмикадровой ленты — ровно кадр, а проценты `background-position` меряются от разницы бокса и картинки и ложатся между кадрами. А покачивание, крен и болтанка облачка идут на разных часах от ходьбы: несовпадающие ритмы, которые никогда не сходятся ровно, — то, от чего походка в духе rubber-hose («резиновый шланг», старая мультяшная походка) читается нарисованной, а не спрайтом на рельсах.
 
-The vertical hop is deliberately *not* one of those clocks. Across the eight drawings
-his body rises and falls twice while his feet stay on a single ground line, which the
-cutter preserves when it aligns them; a CSS bob on top runs at its own phase, and two
-bounces that disagree read as a judder rather than a walk. The layer that used to bob
-now only leans.
+Вертикальный подскок — намеренно *не* одни из этих часов. В восьми рисунках тело поднимается и падает дважды, а ноги стоят на одной земле, которую резчик сохраняет при выравнивании; CSS-подскок сверху идёт в своей фазе, а два несогласованных баунса читаются дёрганьем, а не ходьбой. Слой, который раньше качался, теперь только кренится.
 
-Duration is derived, never set: `PX_PER_CYCLE` says how much ground two steps cover,
-and every journey's length is computed from the distance it has to travel. A fixed
-duration means a wider window makes him walk faster while his legs move at the same
-rate, which is what skating is.
+Длительность выводится, никогда не задаётся: `PX_PER_CYCLE` говорит, сколько земли покрывают два шага, и длина каждого пути считается из расстояния. Фиксированная длительность — это когда широкое окно заставляет идти быстрее при той же частоте ног, то есть скольжение.
 
-He has three positions, not two — crossing, walking out, and *resuming*, which is the
-walk out reversed into a walk back when a second job starts before he has gone. It
-exists so that nothing can ever teleport him: every transition begins from the
-transform he is actually on, read back out of the computed style.
+Позиций у неё три, а не две: пересечение, уход и *возврат* — уход задом наперёд в обратный путь, когда вторая работа стартует, пока первая не ушла. Существует, чтобы ничто никогда не телепортировалось: каждый переход начинается с трансформа, на котором она реально стоит, прочитанного из вычисленных стилей браузера.
 
-The strip is generated from the walk sheet by `scripts/build_walk_frames.py` and is
-committed, because Meshwright ships as a ZIP and nobody should have to run a build step
-to get the cup. `tests/test_walker_states.py` checks the committed strip against the
-frame width the CSS declares, so recutting a sheet at a different size fails loudly
-instead of quietly slicing every frame down the middle. If the strip is missing the cup
-simply never appears — `walker.js` waits for the image's `load` event before he is
-allowed on screen, rather than walking an empty rectangle across the window.
+Лента генерируется из листа ходьбы скриптом `scripts/build_walk_frames.py` и закоммичена: Meshwright едет ZIP-ом, и ради чашки build-шаг никому не нужен. `tests/test_walker_states.py` сверяет закоммиченную ленту с шириной кадра из CSS: перерезка листа под другой размер падает громко, а не режет каждый кадр пополам молча. Нет ленты — чашки просто нет: `walker.js` ждёт события `load` картинки, прежде чем ей выйти, а не ведёт пустой прямоугольник через окно.
 
-## The preview payload
+## Пакет превью
 
-The viewport never receives an STL. `MeshService.preview` sends raw `Float32` vertices, `Uint32`
-faces and `Uint32` boundary-edge pairs, base64-encoded. The browser builds a `BufferGeometry`
-directly. A 1.3 M-face model reaches the viewport in a few hundred milliseconds; the previous
-STL-and-reparse route took minutes.
+Вьюпорт никогда не получает STL. `MeshService.preview` шлёт сырые `Float32`-вершины, `Uint32`-грани и `Uint32`-пары граничных краёв в base64. Браузер строит `BufferGeometry` напрямую. Модель на 1,3 млн граней долетает до вьюпорта за сотни миллисекунд; прежний путь STL-и-репарс занимал минуты.
 
-Rotation does not send geometry at all: the viewport rotates its own group instantly, the backend
-bakes the same matrix, and both sides re-derive the offset from the returned bounds.
+Поворот геометрии вообще не шлёт: вьюпорт крутит свою группу мгновенно, бэкенд запекает ту же матрицу, смещение обе стороны выводят из вернувшихся границ.
 
-## Coordinate spaces
+## Пространства координат
 
-Models are Z-up; the viewport is Y-up. Geometry is rotated −90° about X on load and recentred on
-the build plate. Issue locations arrive in model space and are converted the same way, so a
-highlight lands exactly on the triangle it describes (verified to 0.0000 mm in tests).
+Модели — Z-вверх; вьюпорт — Y-вверх. Геометрия на загрузке поворачивается на −90° вокруг X и центрируется на столе. Места проблем приходят в пространстве модели и конвертятся так же: подсветка ложится ровно на описанный треугольник (в тестах проверено до 0,0000 мм).
 
-## Testing
+## Тестирование
 
-The texture layer is verified against ground truth rather than against itself: a bumpy
-plane with a UV map that is an exact linear function of position, so the correct answer
-for any point is known and any drift is the transfer's own error. Tests assert a budget
-in texels, that decimation leaves the mesh welded, that unwrapping does not touch the
-geometry, and that `split_for_gpu` round-trips every triangle and UV.
+Текстурный слой проверяется по эталону, а не сам по себе: бугристая плоскость с УФ, являющейся точной линейной функцией позиции, — верный ответ для любой точки известен, и любой дрейф есть собственная ошибка переноса. Тесты держат бюджет в текселях, сварку сетки после децимации, нетронутость геометрии развёрткой и круговой проход `split_for_gpu` по каждому треугольнику и УФ.
 
-The rest of the suite covers the analysis checks, each repair stage, sliver geometry (including "must never open
-a watertight mesh"), retopology quality ("must not return worse topology than the source"), the
-safety guard, undo/redo/revert, validation, crash recovery and the adapters.
+Остальной набор крыет проверки анализа, каждую стадию ремонта, геометрию иголок (включая «никогда не открывать герметичную сетку»), качество ретопологии («не отдавать топологию хуже исходной»), страховку, undo/redo/revert, валидацию, восстановление после падений и адаптеры.
 
 ```bash
 .venv\Scripts\python -m pip install -r requirements-dev.txt
 npm test
 ```
+
+Оригинал на английском: [ARCHITECTURE.en.md](ARCHITECTURE.en.md).

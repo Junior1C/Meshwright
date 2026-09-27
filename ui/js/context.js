@@ -42,14 +42,14 @@
         try {
             const res = await work();
             if (!res || !res.success) {
-                status((res && res.error) || `${label} failed`, 'error', 7000);
+                status((res && res.error) || T('ctx.labelFailed', { label: label }), 'error', 7000);
                 return;
             }
-            if (res.unchanged) { status('Nothing to change', 'ok', 2500); return; }
+            if (res.unchanged) { status(T('ctx.nothingChange'), 'ok', 2500); return; }
             if (app().showModel) app().showModel(res);
-            status(done || `${label} done`, 'ok', 3000);
+            status(done || T('ctx.labelDone', { label: label }), 'ok', 3000);
         } catch (e) {
-            status(`${label} failed: ${e.message}`, 'error', 7000);
+            status(T('ctx.labelFailed', { label: `${label}: ${e.message}` }), 'error', 7000);
         }
     }
 
@@ -62,11 +62,11 @@
             window.viewer.endMove();
             moving = false;
             if (!offset || offset.every(v => Math.abs(v) < 1e-6)) return;
-            await run('Moving', () => api().move_pieces([...selected], offset),
-                      `Moved ${selected.size} piece${selected.size === 1 ? '' : 's'}`);
+            await run(T('ctx.moving'), () => api().move_pieces([...selected], offset),
+                      Tp('ctx.moved', selected.size, { n: selected.size }));
         });
         if (!ok) { moving = false; return; }
-        status('Drag the arrows to move the selected piece — release to apply, Esc to cancel', 'busy');
+        status(T('ctx.dragMove'), 'busy');
     }
 
     function cancelMove() {
@@ -80,48 +80,47 @@
         // The viewport was nudged about while dragging; rebuilding it from the
         // engine is the only honest way back to what the model actually is.
         if (app().refreshViewport) app().refreshViewport();
-        (app().setStatus || (() => {}))('Move cancelled', 'ok', 2500);
+        (app().setStatus || (() => {}))(T('ctx.moveCancelled'), 'ok', 2500);
     }
 
     /* ---------- building the menu ---------- */
     function entries(selected, piece) {
         const n = selected.size;
-        const many = n > 1;
         const total = pieces() ? pieces().all().length : 0;
         const list = [...selected];
         const rows = [];
 
         if (n) {
-            rows.push({ label: 'Move…', hint: 'drag handle', act: () => startMove(selected) });
+            rows.push({ label: T('ctx.move'), hint: T('ctx.moveHint'), act: () => startMove(selected) });
             rows.push({
-                label: `Reduce detail`, submenu: [0.5, 0.25, 0.1].map(keep => ({
-                    label: `Keep ${Math.round(keep * 100)}%`,
-                    act: () => run(`Reducing ${n} piece${many ? 's' : ''}`,
+                label: T('ctx.reduce'), submenu: [0.5, 0.25, 0.1].map(keep => ({
+                    label: T('ctx.keep', { n: Math.round(keep * 100) }),
+                    act: () => run(Tp('ctx.reducing', n, { n: n }),
                                    () => api().optimize_pieces(list, keep),
-                                   'Reduced — the rest of the model is untouched'),
+                                   T('ctx.reduced')),
                 })),
             });
             if (many) {
-                rows.push({ label: `Merge into one solid`, hint: `${n} pieces`,
-                            act: () => run(`Merging ${n} pieces`, () => api().merge_pieces(list)) });
+                rows.push({ label: T('ctx.merge'), hint: Tp('pl.pieces', n, { n: n }),
+                            act: () => run(Tp('ctx.merging', n, { n: n }), () => api().merge_pieces(list)) });
             }
             rows.push({ separator: true });
             if (total > n) {
-                rows.push({ label: 'Keep only these', hint: `drops ${count(total - n)}`,
-                            act: () => run('Isolating', () => api().isolate_pieces(list)) });
-                rows.push({ label: `Remove`, danger: true, hint: n === 1 ? '' : `${n} pieces`,
-                            act: () => run(`Removing ${n} piece${many ? 's' : ''}`,
+                rows.push({ label: T('ctx.keepOnly'), hint: `drops ${count(total - n)}`,
+                            act: () => run(T('ctx.isolating'), () => api().isolate_pieces(list)) });
+                rows.push({ label: T('ctx.remove'), danger: true, hint: n === 1 ? '' : Tp('pl.pieces', n, { n: n }),
+                            act: () => run(Tp('ctx.removing', n, { n: n }),
                                            () => api().remove_shells(list)) });
             }
             rows.push({ separator: true });
         }
 
         if (total > 1) {
-            rows.push({ label: 'Select all pieces', hint: count(total),
+            rows.push({ label: T('ctx.selectAll'), hint: count(total),
                         act: () => { close(); pieces().choose(pieces().all()); } });
         }
-        if (n) rows.push({ label: 'Clear selection', act: () => { close(); pieces().choose([]); } });
-        rows.push({ label: 'Fit view', hint: 'F', act: () => { close(); window.viewer.fit(); } });
+        if (n) rows.push({ label: T('ctx.clearSel'), act: () => { close(); pieces().choose([]); } });
+        rows.push({ label: T('ctx.fit'), hint: T('ctx.fitHint'), act: () => { close(); window.viewer.fit(); } });
         return rows;
     }
 
@@ -171,10 +170,10 @@
         if (selected.size === 1) {
             const info = pieces() && pieces().info([...selected][0]);
             return info
-                ? `Piece ${info.index + 1} · ${count(info.faces)} triangles`
-                : 'One piece';
+                ? T('ctx.pieceHead', { i: info.index + 1, n: count(info.faces) })
+                : T('ctx.onePiece');
         }
-        return `${count(selected.size)} pieces selected`;
+        return Tp('ctx.piecesHead', selected.size, { n: count(selected.size) });
     }
 
     /* ---------- wiring ---------- */

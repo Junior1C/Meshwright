@@ -1,12 +1,12 @@
-# MCP server
+# MCP-сервер (RU)
 
-Meshwright exposes its full engine over the [Model Context Protocol](https://modelcontextprotocol.io),
-so an AI assistant or editor can analyse and repair meshes directly. It is the *same*
-`engine.service.MeshService` the desktop app uses — same validation, same safety guard, same undo.
+Meshwright отдаёт весь движок наружу по [Model Context Protocol](https://modelcontextprotocol.io):
+ИИ-ассистент или редактор анализируют и чинят сетки напрямую. Это тот же
+`engine.service.MeshService`, что под десктопом, — та же проверка ввода, та же страховка, та же отмена.
 
 ```bash
-run-mcp.bat                 # uses the project's .venv
-python mcp_server.py        # or your own environment
+run-mcp.bat                 # берёт .venv проекта
+python mcp_server.py        # или своё окружение
 ```
 
 ## Claude Desktop
@@ -30,37 +30,37 @@ python mcp_server.py        # or your own environment
 claude mcp add meshwright -- D:/path/to/Meshwright/.venv/Scripts/python.exe D:/path/to/Meshwright/mcp_server.py
 ```
 
-Point the command at the project's `.venv` interpreter so the server gets the versions Meshwright
-was installed with.
+Команду указывайте на интерпретатор из `.venv` проекта — сервер получит версии, с которыми ставился Meshwright.
 
-## Tools
+Интерфейс самого приложения — на русском (кнопка EN/РУ); ответы MCP-сервера, журнал и отчёты — на английском, это общий след аудита.
 
-| Tool | Arguments | Does |
+## Инструменты
+
+| Инструмент | Аргументы | Делает |
 |---|---|---|
-| `load_model` | `path` | Load OBJ/FBX/GLB/GLTF/STL/PLY/3MF/DAE/OFF and return full diagnostics |
-| `analyze` | — | Re-run diagnostics on the current mesh |
-| `repair` | `strict_watertight=true`, `force=false` | Staged repair pipeline, verified afterwards |
-| `fix_slivers` | `min_angle_deg=1.0`, `force=false` | Collapse needles, flip caps |
-| `simplify` | `keep_fraction=0.5`, `force=false` | Quadric decimation by ratio |
-| `retopologize` | `target_faces`, `method="quadriflow"`, `preserve_sharp=true`, `adaptive=true` | Smart retopology / aggressive reduction to an absolute face count |
-| `remove_shells` | `indices` | Delete disconnected pieces by index (0 is largest) |
-| `rotate` | `axis`, `degrees` | Rotate about the model centre |
-| `undo` / `redo` | — | Move between numbered states |
-| `revert` | — | Back to the file as loaded |
-| `states` | — | List states in this session |
-| `export_stl` | `path`, `scale_unit="mm"`, `align_origin=true` | Write a print-ready binary STL |
-| `export_report` | `path` | Write diagnostics + history as JSON |
+| `load_model` | `path` | Грузит OBJ/FBX/GLB/GLTF/STL/PLY/3MF/DAE/OFF и отдаёт полную диагностику |
+| `analyze` | — | Перепроверяет текущую сетку |
+| `repair` | `strict_watertight=true`, `force=false` | Стадийный конвейер ремонта, затем проверка |
+| `fix_slivers` | `min_angle_deg=1.0`, `force=false` | Схлопнуть иглы, перевернуть крышки |
+| `simplify` | `keep_fraction=0.5` , `force=false` | Quadric-децимация долей |
+| `retopologize` | `target_faces`, `method="quadriflow"`, `preserve_sharp=true`, `adaptive=true` | Умная ретопология / жёсткое упрощение до абсолютного числа граней |
+| `remove_shells` | `indices` | Удалить несвязанные куски по индексу (0 — самый большой) |
+| `rotate` | `axis`, `degrees` | Повернуть вокруг центра модели |
+| `undo` / `redo` | — | Ходить между номерными состояниями |
+| `revert` | — | Назад к файлу как загружен |
+| `states` | — | Список состояний сессии |
+| `export_stl` | `path`, `scale_unit="mm"`, `align_origin=true` | Пишет готовый к печати бинарный STL |
+| `export_report` | `path` | Пишет диагностику + историю в JSON |
 
-`method` for `retopologize`: `quadriflow` (clean curvature-aligned quads — best for organic and
-low-poly), `isotropic` (uniform triangles), `quadric` (topology-preserving collapse, keeps hard edges).
+`method` для `retopologize`: `quadriflow` (чистые quad-ы по кривизне — лучше для органики и лоу-поли), `isotropic` (ровные треугольники), `quadric` (схлопывание с сохранением топологии, держит жёсткие края).
 
-## Resource
+## Ресурс
 
-`meshwright://report` — the current diagnostics and operation history as JSON.
+`meshwright://report` — текущая диагностика и история операций в JSON.
 
-## Result shape
+## Форма результата
 
-Every tool returns JSON. The binary mesh preview and the texture maps are both stripped, so a result stays under a kilobyte even on a model with a full 2048px PBR set. What remains of the texture block says which channels exist, not what is in them.
+Каждый инструмент возвращает JSON. Бинарное превью сетки и карты текстур вырезаются — итог меньше килобайта даже на модели с полным PBR-набором 2048. От блока текстур остаётся, какие каналы есть, а не что в них.
 
 ```jsonc
 {
@@ -80,12 +80,11 @@ Every tool returns JSON. The binary mesh preview and the texture maps are both s
 }
 ```
 
-The `log` array is the same step-by-step trace the desktop console shows — useful for explaining
-to a user what actually happened.
+Массив `log` — тот же пошаговый след, что в консоли десктопа: по нему удобно объяснять пользователю, что реально произошло.
 
-## Safety
+## Безопасность
 
-A destructive result is refused rather than committed:
+Разрушительный результат отклоняется, а не применяется:
 
 ```jsonc
 {
@@ -97,12 +96,12 @@ A destructive result is refused rather than committed:
 }
 ```
 
-Pass `force=true` to apply it anyway — deliberately, never by accident. Nothing is destroyed either
-way: `undo` returns to the previous state, and every accepted state is snapshotted to disk.
+`force=true` — применить всё равно: осознанно, никогда случайно. В любом случае ничего не гибнет: `undo` возвращает прошлое состояние, а каждое принятое пишется в снимок на диск.
 
-## Notes
+## Заметки
 
-- The server keeps one session. Loading a new model resets the state history.
-- Paths are validated: the file must exist, have a supported extension and be under 2 GB.
-  Output paths must be in an existing folder.
-- Autosave snapshots live in `%LOCALAPPDATA%\Meshwright\sessions` and are removed on a clean exit.
+- Сервер держит одну сессию. Загрузка новой модели сбрасывает историю состояний.
+- Пути проверяются: файл должен существовать, иметь поддерживаемое расширение и быть меньше 2 ГБ. Выходные пути — в существующую папку.
+- Снимки автосейва живут в `%LOCALAPPDATA%\Meshwright\sessions` и при чистом выходе удаляются.
+
+Оригинал на английском: [MCP.en.md](MCP.en.md).

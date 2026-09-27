@@ -1,66 +1,59 @@
-# Contributing to Meshwright
+# Как помочь Meshwright (RU)
 
-Thanks for helping improve Meshwright — Geekatplay Studio, Vladimir Chopine.
+Спасибо, что улучшаете Meshwright, — Geekatplay Studio, Владимир Чопин.
 
-## Setup
+## Установка
 
 ```bash
 git clone https://github.com/GeekatplayStudio/Meshwright.git
 cd Meshwright
 python -m venv .venv
 .venv\Scripts\python -m pip install -r requirements-dev.txt
-npm install                 # vendors Three.js, installs eslint
+npm install                 # докачивает Three.js, ставит eslint
 ```
 
-Always work inside the `.venv`. Meshwright depends on numpy, scipy and several compiled mesh
-libraries; installing them into a shared interpreter can upgrade numpy underneath other projects.
-Keep the bounds in `requirements.txt` — an unbounded `numpy>=x` is how that happens.
-`requirements.txt` must also stay installable with no compiler present on every supported
-Python: anything that builds from source, or that lags a new Python release, belongs in
-`requirements-optional.txt`, which the installer adds one package at a time and may skip.
+Всегда работайте внутри `.venv`. Meshwright зависит от numpy, scipy и нескольких компилируемых библиотек сеток; установка в общий интерпретатор умеет обновить numpy под другими проектами.
+Держите границы в `requirements.txt`: `numpy>=x` без верхней границы — так это и случается.
+`requirements.txt` обязан ставиться и без компилятора на машине на каждом поддерживаемом Python: всё, что собирается из исходников или отстаёт от свежего Python, — в `requirements-optional.txt`: установщик добавляет его по пакету и умеет пропускать.
 
-Three.js is vendored into `ui/vendor/` by `npm install` (see `install.ps1`). If the viewport is
-blank, re-run the installer — the app never loads scripts from a CDN, so it works offline.
+Three.js вендорится в `ui/vendor/` через `npm install` (см. `install.ps1`). Вьюпорт пуст — прогоните установщик заново: скрипты с CDN приложение не грузит никогда, поэтому работает офлайн.
 
-## Running
+В этом RU-форке интерфейс переключается EN/РУ (см. `ui/js/i18n.js`): новые строки интерфейса — сразу в оба словаря, EN и RU.
+
+## Запуск
 
 ```bash
-.venv\Scripts\python app.py         # desktop app  (or start.bat)
-.venv\Scripts\python mcp_server.py  # MCP server   (or run-mcp.bat)
+.venv\Scripts\python app.py         # десктоп  (или start.bat)
+.venv\Scripts\python mcp_server.py  # MCP-сервер   (или run-mcp.bat)
 ```
 
-## Tests and linting
+## Тесты и линты
 
 ```bash
-npm test              # pytest with coverage
+npm test              # pytest с покрытием
 npm run lint          # eslint (ui/js) + ruff (python)
 ```
 
-Everything must pass before a pull request. Add a test with every behaviour change — the suite is
-the reason the safety guarantees hold.
+Всё должно проходить до пулл-реквеста. К каждому изменению поведения — тест: набор — причина, по которой держатся гарантии безопасности.
 
-## Architecture in one paragraph
+## Архитектура в один абзац
 
-`engine/` holds all logic and knows nothing about any UI. `engine/service.py` is the single entry
-point: it validates input (`engine/validation.py`), runs the operation, commits an immutable
-numbered state, snapshots it for crash recovery, and refuses results that are measurably worse.
-`app.py` is a thin pywebview adapter and `mcp_server.py` a thin MCP adapter over that same service.
-Adding a feature means adding it to the service — both front ends get it. See
+Вся логика — в `engine/`, и она ничего не знает ни про какой UI. `engine/service.py` — единственная точка входа: проверяет ввод (`engine/validation.py`), выполняет операцию, фиксирует иммутабельное номерное состояние, пишет его в снимок для восстановления после падений и отклоняет итоги, которые измеримо хуже. `app.py` — тонкий pywebview-адаптер, `mcp_server.py` — тонкий MCP-адаптер над тем же сервисом.
+Новая фича — значит, в сервис: оба фасада получают её сразу. См.
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## Style
+## Стиль
 
-- Python: ruff-clean, 4-space indent, type hints on public functions, docstrings that say *why*.
-- JavaScript: eslint-clean, no frameworks, no build step, no external requests at runtime.
-- Comments explain intent and non-obvious trade-offs, not what the line already says.
+- Python: ruff-clean, отступ 4 пробела, тайп-хинты на публичных функциях, докстринги про *зачем*.
+- JavaScript: eslint-clean, без фреймворков, без сборки, в рантайме никаких внешних запросов.
+- Комментарии — про намерение и неочевидные компромиссы, а не про то, что строка и так говорит.
 
-## Reporting bugs
+## Багрепорты
 
-Please include the model (or one that reproduces it), the **Activity console** output, and the
-JSON report (`Diagnostics → Save JSON`). Those three make almost any mesh bug reproducible.
+Приложите, пожалуйста, модель (или ту, на которой повторяется), вывод **консоли активности** и JSON-отчёт («Диагностика → Сохранить JSON»). Эти трое делают воспроизводимым почти любой баг сетки.
 
-## Licence
+## Лицензия
 
-Contributions are accepted under the MIT licence of this project. Do not add a dependency with a
-licence more restrictive than the ones already listed in [docs/LICENSES.md](docs/LICENSES.md)
-without discussing it first.
+Вклад принимается под MIT-лицензией проекта. Зависимость с лицензией строже перечисленных в [docs/LICENSES.md](docs/LICENSES.md) без обсуждения не добавлять.
+
+Оригинал на английском: [CONTRIBUTING.en.md](CONTRIBUTING.en.md).

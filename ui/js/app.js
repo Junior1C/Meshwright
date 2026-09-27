@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const api = () => (window.pywebview && window.pywebview.api) || null;
 
     let current = null; // last analysis
+    let lastReport = null; // last repair report, for re-rendering on language switch
 
     /* ---------- status ---------- */
     const status = $('status'), statusText = $('statusText');
@@ -16,8 +17,39 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /* ---------- helpers ---------- */
-    const fmt = (n) => (n == null ? '–' : Number(n).toLocaleString());
-    const yesno = (b) => (b ? 'Yes' : 'No');
+    const fmt = (n) => I18N.num(n);
+    const yesno = (b) => (b ? T('stats.yes') : T('stats.no'));
+
+    /* Backend sends stable issue ids with English text; the interface says it
+       in the current language, falling back to the backend text for anything
+       unknown (e.g. a new check from a newer engine). */
+    function issueText(it, s) {
+        switch (it.id) {
+            case 'empty': return { title: T('issue.empty.t'), detail: T('issue.empty.d') };
+            case 'holes': return { title: T('issue.holes.t', { n: s.holes }), detail: T('issue.holes.d', { n: fmt(s.boundary_edges) }) };
+            case 'nonmanifold': return { title: T('issue.nonmanifold.t'), detail: T('issue.nonmanifold.d', { n: fmt(s.nonmanifold_edges) }) };
+            case 'winding': return { title: T('issue.winding.t'), detail: T('issue.winding.d') };
+            case 'inverted': return { title: T('issue.inverted.t'), detail: T('issue.inverted.d') };
+            case 'degenerate': return { title: T('issue.degenerate.t'), detail: T('issue.degenerate.d', { n: fmt(s.degenerate_faces) }) };
+            case 'dupfaces': return { title: T('issue.dupfaces.t'), detail: T('issue.dupfaces.d', { n: fmt(s.duplicate_faces) }) };
+            case 'dupverts': return { title: T('issue.dupverts.t'), detail: T('issue.dupverts.d', { n: fmt(s.duplicate_vertices) }) };
+            case 'unref': return { title: T('issue.unref.t'), detail: T('issue.unref.d', { n: fmt(s.unreferenced_vertices) }) };
+            case 'slivers': return { title: T('issue.slivers.t'), detail: T('issue.slivers.d', { n: fmt(s.sliver_faces) }) };
+            case 'bodies': return { title: T('issue.bodies.t', { n: fmt(s.body_count) }), detail: T('issue.bodies.d') };
+            case 'scale': return { title: T('issue.scale.t'), detail: T('issue.scale.d', { n: s.max_dimension_mm }) };
+            default: return { title: it.title, detail: it.detail };
+        }
+    }
+
+    function verdictText(v) {
+        return {
+            'Nothing to print': T('verdict.empty'),
+            'Print ready': T('verdict.ready'),
+            'Repair required': T('verdict.required'),
+            'Repair recommended': T('verdict.recommended'),
+            'Printable, minor cleanup available': T('verdict.minor'),
+        }[v] || v;
+    }
 
     function b64ToBuffer(b64) {
         const bin = atob(b64);
@@ -40,11 +72,9 @@ document.addEventListener('DOMContentLoaded', () => {
         detailSeg.classList.toggle('reduced', !!detail.reduced);
 
         if (detail.reduced) {
-            toast('lod', { kind: 'info', title: `Viewport showing ${pct}% of this model`,
+            toast('lod', { kind: 'info', title: T('st.lodTitle', { p: pct }),
                 // Toast bodies are plain text, so no markup here.
-                body: `${fmt(detail.faces_total)} triangles is a lot to draw, so the view is simplified `
-                    + `to ${fmt(detail.faces_shown)} to keep things quick. Drag the Detail slider up for `
-                    + `the full mesh — diagnostics, repair, reduce and export always use every triangle.`,
+                body: T('st.lodBody', { total: fmt(detail.faces_total), shown: fmt(detail.faces_shown) }),
                 ms: 14000 });
         }
     }
@@ -54,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
         detailSlider.disabled = true;
         try {
             const res = await api().set_preview_detail(percent >= 100 ? 1.0 : percent / 100);
-            if (!res || !res.success) { setStatus((res && res.error) || 'Could not change detail', 'error', 5000); return; }
+            if (!res || !res.success) { setStatus((res && res.error) || T('st.detailFail'), 'error', 5000); return; }
             if (window.viewer) {
                 window.viewer.loadGeometry({
                     vertices: b64ToBuffer(res.preview.vertices),
@@ -66,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             showDetail(res.detail);
         } catch (e) {
-            setStatus(`Could not change detail: ${e.message}`, 'error', 5000);
+            setStatus(T('st.detailFailErr', { err: e.message }), 'error', 5000);
         } finally {
             detailSlider.disabled = false;
         }
@@ -91,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 boundary_edges: b64ToBuffer(p.boundary_edges),
                 uvs: p.uvs ? b64ToBuffer(p.uvs) : null,
             }, res.shell_face_counts || null);
-            logLine(`Viewport updated in ${Math.round(performance.now() - t)} ms`, 'info');
+            logLine(T('st.viewportMs', { n: Math.round(performance.now() - t) }), 'info');
         }
         $('emptyState').classList.add('hidden');
         hasModel = true;
@@ -164,7 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 spinner.classList.add('hidden');
                 svg.classList.remove('hidden');
-                prompt.textContent = 'Drop a model here or open one';
+                prompt.textContent = T('empty.prompt');
                 if (demo) demo.disabled = false;
             }
         }
@@ -195,6 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="toast-body"></div>
                 <div class="toast-bar hidden"><i></i></div>`;
             el.querySelector('.toast-x').addEventListener('click', () => dismissToast(key));
+            el.querySelector('.toast-x').title = T('modal.dismiss');
             toastBox.appendChild(el);
             t = { el, timer: null, raf: 0 };
             toasts.set(key, t);
@@ -294,9 +325,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     cancelAnimationFrame(el.raf);
                     const bar = el.el.querySelector('.toast-bar i');
                     if (bar) bar.style.width = '92%';
-                    el.el.querySelector('.toast-title').textContent = (ev.label || 'Loading').replace(/…$/, '') + '…';
+                    el.el.querySelector('.toast-title').textContent = (ev.label || T('st.loading')).replace(/…$/, '') + '…';
                     const bodyEl = el.el.querySelector('.toast-body');
-                    bodyEl.textContent = 'Rendering 3D viewport…';
+                    bodyEl.textContent = T('st.renderingViewport');
                     bodyEl.classList.remove('hidden');
                 }
                 showGlobalProgress(92);
@@ -306,21 +337,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const el = toasts.get(key);
             if (el) { cancelAnimationFrame(el.raf); el.el.querySelector('.toast-bar i').style.width = '100%'; }
             hideGlobalProgress(false);
-            toast(key, { kind: 'ok', title: ev.label.replace(/…$/, ''), body: `Finished in ${ev.elapsed}s`, ms: 5000 });
+            toast(key, { kind: 'ok', title: ev.label.replace(/…$/, ''), body: T('st.finishedIn', { s: ev.elapsed }), ms: 5000 });
             document.body.classList.remove('working');
         } else if (ev.state === 'error') {
             activeOps.delete(key);
             const el = toasts.get(key);
             if (el) cancelAnimationFrame(el.raf);
             hideGlobalProgress(true);
-            toast(key, { kind: 'error', title: ev.label, body: ev.error || 'Failed', ms: 10000 });
+            toast(key, { kind: 'error', title: ev.label, body: ev.error || T('st.failed'), ms: 10000 });
             document.body.classList.remove('working');
         }
     }
 
     /* ---------- state / undo / redo ---------- */
+    let lastStateId = null;
     function updateStateUI(res) {
-        if (res.state_id != null) $('stateBadge').textContent = `state #${res.state_id}`;
+        if (res.state_id != null) { lastStateId = res.state_id; $('stateBadge').textContent = T('st.state', { n: res.state_id }); }
         if ('can_undo' in res) $('btnUndo').disabled = !res.can_undo;
         if ('can_redo' in res) $('btnRedo').disabled = !res.can_redo;
     }
@@ -330,9 +362,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!res.success) { setStatus(res.error, 'error', 4000); return; }
             $('report').classList.add('hidden');
             showModel(res);
-            setStatus(`${which === 'undo' ? 'Undo' : 'Redo'} → state #${res.state_id} (${res.operation})`, 'ok', 3000);
+            setStatus(which === 'undo' ? T('st.undoTo', { n: res.state_id, op: res.operation }) : T('st.redoTo', { n: res.state_id, op: res.operation }), 'ok', 3000);
         } catch (e) {
-            setStatus(`${which} failed: ${e.message}`, 'error', 4000);
+            setStatus(T('st.stepFailed', { op: which, err: e.message }), 'error', 4000);
         }
     }
     $('btnUndo').addEventListener('click', () => step('undo'));
@@ -341,13 +373,13 @@ document.addEventListener('DOMContentLoaded', () => {
     /* A mutating result that was rejected by the safety guard. */
     function handleRejected(res, retry) {
         if (!res.rejected) return false;
-        openModal('Change rejected',
+        openModal(T('repair.rejectedTitle'),
             `<p>${res.reason.charAt(0).toUpperCase() + res.reason.slice(1)}.</p>
              <p>The previous state (#${res.state_id}) was kept. The result would have been
-             <strong>${res.would_be.verdict}</strong> (score ${res.would_be.score}).</p>`,
-            [{ label: 'Keep current', primary: true }, { label: 'Apply anyway', action: retry }]);
-        setStatus(`Rejected: ${res.reason}`, 'rejected', 6000);
-        toast('rejected', { kind: 'warn', title: 'Change rejected — previous state kept',
+             <strong>${verdictText(res.would_be.verdict)}</strong> (score ${res.would_be.score}).</p>`,
+            [{ label: T('repair.keepCurrent'), primary: true }, { label: T('repair.applyAnyway'), action: retry }]);
+        setStatus(T('st.rejected', { reason: res.reason }), 'rejected', 6000);
+        toast('rejected', { kind: 'warn', title: T('repair.rejectedToast'),
                             body: res.reason, ms: 12000 });
         return true;
     }
@@ -374,19 +406,18 @@ document.addEventListener('DOMContentLoaded', () => {
     function offerRecovery(sessions) {
         const s = sessions[0];
         const name = s.source_file ? s.source_file.split(/[\\/]/).pop() : 'unknown file';
-        openModal('Recover previous session?',
-            `<p>Meshwright did not close cleanly last time. A snapshot of <strong>${name}</strong>
-             (state #${s.last.id}, ${s.last.operation}, ${fmt(s.last.faces)} faces, ${s.last.verdict || ''}) is available.</p>
-             ${sessions.length > 1 ? `<p>${sessions.length - 1} older session(s) will be discarded.</p>` : ''}`,
-            [{ label: 'Recover', primary: true, action: async () => {
-                setStatus('Recovering…');
+        openModal(T('modal.recoverTitle'),
+            T('modal.recoverBody', { name: name, id: s.last.id, op: s.last.operation, faces: fmt(s.last.faces), verdict: verdictText(s.last.verdict || ''),
+                extra: sessions.length > 1 ? T('modal.recoverExtra', { n: sessions.length - 1 }) : '' }),
+            [{ label: T('modal.recover'), primary: true, action: async () => {
+                setStatus(T('modal.recovering'));
                 const res = await api().recover_session(s.session);
                 if (!res.success) { setStatus(res.error, 'error', 5000); return; }
                 showModel(res);
-                setStatus('Session recovered', 'ok', 3000);
+                setStatus(T('modal.recovered'), 'ok', 3000);
                 for (const o of sessions.slice(1)) api().discard_session(o.session);
             } },
-            { label: 'Discard', action: () => sessions.forEach(o => api().discard_session(o.session)) }]);
+            { label: T('modal.discard'), action: () => sessions.forEach(o => api().discard_session(o.session)) }]);
     }
 
     /* ---------- console ---------- */
@@ -436,7 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (btn) btn.classList.remove('active');
         if (window.viewer) window.viewer.hideShells();
     }
-    function renderShells(shells) {
+    function renderShells(shells, quiet) {
         const card = $('cardShells');
         shellSelection = new Set();
         window.viewer.onPiecePick = null;
@@ -452,8 +483,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 li.classList.toggle('selected', cb.checked);
             });
             $('btnShellsRemove').disabled = shellSelection.size === 0 || shellSelection.size === shells.length;
-            $('btnShellsRemove').textContent = shellSelection.size ? `Remove ${shellSelection.size} selected` : 'Remove selected';
-            $('btnShellsAll').textContent = shellSelection.size === shells.length ? 'Select none' : 'Select all';
+            $('btnShellsRemove').textContent = shellSelection.size ? T('shells.removeN', { n: shellSelection.size }) : T('shells.remove');
+            $('btnShellsAll').textContent = shellSelection.size === shells.length ? T('shells.selectNone') : T('shells.selectAll');
             if (shellHighlight) window.viewer.showShells(shellSelection);
         };
         syncShells = syncShellButtons;
@@ -481,7 +512,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const c = window.viewer.constructor.shellColor(sh.index, false);
             const size = sh.size_mm.map(v => v.toFixed(1)).join('×');
             li.innerHTML = `<input type="checkbox" data-i="${sh.index}"><span class="sw" style="background:#${c.getHexString()}"></span>` +
-                `<span>Piece ${sh.index + 1}${sh.watertight ? '' : ' (open)'}</span><span class="meta">${fmt(sh.faces)} tri · ${size} mm</span>`;
+                `<span>${T('shells.piece', { i: sh.index + 1 })}${sh.watertight ? '' : ' ' + T('shells.open')}</span><span class="meta">${fmt(sh.faces)} ${T('shells.tri')} · ${size} mm</span>`;
             li.addEventListener('click', e => {
                 const cb = li.querySelector('input');
                 if (e.target !== cb) cb.checked = !cb.checked;
@@ -492,7 +523,7 @@ document.addEventListener('DOMContentLoaded', () => {
             list.appendChild(li);
         });
         syncShellButtons();
-        logLine(`${shells.length} separate pieces found — review them in the Separate pieces panel`, 'warn');
+        if (!quiet) logLine(Tp('shells.found', shells.length), 'warn');
     }
     $('btnShellsHighlight').addEventListener('click', e => {
         shellHighlight = !shellHighlight;
@@ -502,39 +533,42 @@ document.addEventListener('DOMContentLoaded', () => {
     $('btnShellsRemove').addEventListener('click', async () => {
         if (!shellSelection.size) return;
         const n = shellSelection.size;
-        setStatus(`Removing ${n} piece(s)…`);
+        setStatus(Tp('shells.removing', n, { n: n }));
         try {
             const res = await api().remove_shells([...shellSelection]);
             if (!res.success) { setStatus(res.error, 'error', 6000); return; }
             showModel(res);
-            setStatus(`Removed ${n} piece(s)`, 'ok', 3000);
+            setStatus(Tp('shells.removed', n, { n: n }), 'ok', 3000);
         } catch (e) {
-            setStatus(`Remove failed: ${e.message}`, 'error', 6000);
+            setStatus(T('shells.removeFailed', { err: e.message }), 'error', 6000);
         }
     });
 
     /* ---------- about ---------- */
     const LIB_ROLES = {
-        'trimesh': 'loading, geometry, analysis, export', 'NumPy': 'array maths', 'SciPy': 'graph / spatial queries',
-        'PyMeshLab': 'non-manifold repair, hole closing, decimation', 'Manifold3D': 'manifold solid reconstruction',
-        'pymeshfix (MeshFix)': 'hole filling and self-intersection repair', 'fast-simplification': 'fast quadric decimation', 'pyQuadriFlow': 'smart quad retopology (QuadriFlow)',
-        'scikit-image': 'marching cubes (voxel remesh)', 'pywebview': 'desktop window', 'mcp': 'MCP server', 'ufbx': 'FBX fallback loader',
+        'trimesh': 'about.role.trimesh', 'NumPy': 'about.role.numpy', 'SciPy': 'about.role.scipy',
+        'PyMeshLab': 'about.role.pymeshlab', 'Manifold3D': 'about.role.manifold',
+        'pymeshfix (MeshFix)': 'about.role.pymeshfix', 'fast-simplification': 'about.role.fast', 'pyQuadriFlow': 'about.role.quadriflow',
+        'scikit-image': 'about.role.skimage', 'pywebview': 'about.role.pywebview', 'mcp': 'about.role.mcp', 'ufbx': 'about.role.ufbx',
     };
+    let lastAboutInfo = null;
+    function renderAboutFoot(info) {
+        $('aboutFoot').innerHTML = T('about.viewportNote', { t: info.three, p: info.python, pl: info.platform });
+    }
     async function showAbout() {
         $('about').classList.remove('hidden');
         if (!api()) return;
         try {
             const info = await api().about_info();
             if (!info.success) return;
+            lastAboutInfo = info;
             $('aboutVersion').textContent = `v${info.version}`;
-            $('aboutThree').textContent = info.three;
-            $('aboutPython').textContent = info.python;
-            $('aboutPlatform').textContent = info.platform;
+            renderAboutFoot(info);
             const t = $('aboutLibs');
             t.innerHTML = '';
             for (const [name, ver] of Object.entries(info.libraries)) {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${name}</td><td class="${ver ? '' : 'missing'}">${ver || 'not installed'}</td><td>${LIB_ROLES[name] || ''}</td>`;
+                tr.innerHTML = `<td>${name}</td><td class="${ver ? '' : 'missing'}">${ver || T('about.notInstalled')}</td><td>${T(LIB_ROLES[name] || '')}</td>`;
                 t.appendChild(tr);
             }
         } catch { /* static content is still useful offline */ }
@@ -560,52 +594,48 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch { /* ignore */ }
 
         const defaultPath = detected.length ? detected[0] : '';
-        const bodyHtml = `
-            <p>Install the <strong>Geekatplay-3D-MeshFix</strong> custom nodes into ComfyUI so you can load, repair, reduce, and preview 3D meshes inside ComfyUI workflows.</p>
-            <div style="margin: 16px 0;">
-                <label style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;">ComfyUI Directory (or custom_nodes folder):</label>
-                <div style="display:flex;gap:8px;margin-bottom:8px;">
-                    <input id="comfyPathInput" type="text" style="flex:1;padding:8px 10px;background:rgba(255,255,255,0.06);color:inherit;border:1px solid rgba(255,255,255,0.15);border-radius:4px;font-family:monospace;font-size:12px;" value="${defaultPath.replace(/\\/g, '\\\\')}" placeholder="e.g. D:\\ComfyUI">
-                    <button id="btnBrowseComfy" class="btn">Browse…</button>
-                </div>
-                ${detected.length > 1 ? `
+        const detectedHtml = detected.length > 1 ? `
                     <div style="margin-top:6px;font-size:12px;color:rgba(255,255,255,0.7);">
-                        Detected installs:
+                        ${T('modal.comfyDetected')}
                         ${detected.map(p => `<button class="link btn-preset-comfy" data-p="${p.replace(/"/g, '&quot;')}" style="margin-right:8px;text-decoration:underline;">${p}</button>`).join('')}
                     </div>
-                ` : ''}
-            </div>
-            <p class="hint">Creates <code>Geekatplay-3D-MeshFix</code> in <code>custom_nodes</code> and copies sample workflow <code>mesh_fix_workflow.json</code>.</p>
-        `;
+                ` : '';
+        const bodyHtml = T('modal.comfyBody', {
+            dirLabel: T('modal.comfyDir'),
+            path: defaultPath.replace(/\\/g, '\\\\'),
+            ph: T('modal.comfyPh'),
+            browse: T('modal.comfyBrowse'),
+            detected: detectedHtml,
+        });
 
-        openModal('Install ComfyUI 3D Nodes', bodyHtml, [
-            { label: 'Cancel' },
+        openModal(T('modal.comfyTitle'), bodyHtml, [
+            { label: T('modal.cancel') },
             {
-                label: 'Install Nodes',
+                label: T('modal.comfyInstall'),
                 primary: true,
                 action: async () => {
                     const chosen = ($('comfyPathInput').value || '').trim();
                     if (!chosen) {
-                        toast('comfy-err', { kind: 'error', title: 'Path required', body: 'Please specify your ComfyUI path.' });
+                        toast('comfy-err', { kind: 'error', title: T('modal.comfyNeedPath'), body: T('modal.comfyNeedPathBody') });
                         return;
                     }
-                    setStatus('Installing ComfyUI custom nodes…');
+                    setStatus(T('modal.comfyInstalling'));
                     try {
                         const res = await api().install_comfyui_nodes(chosen);
                         if (res && res.success) {
-                            setStatus('ComfyUI nodes installed successfully', 'ok', 5000);
+                            setStatus(T('modal.comfyDone'), 'ok', 5000);
                             toast('comfy-ok', {
                                 kind: 'ok',
-                                title: 'ComfyUI Nodes Installed',
-                                body: `Installed to ${res.destination}. Drag & drop mesh_fix_workflow.json into ComfyUI to try it!`,
+                                title: T('modal.comfyDoneTitle'),
+                                body: T('modal.comfyDoneBody', { dir: res.destination }),
                                 ms: 12000
                             });
                         } else {
-                            setStatus(res.error || 'Installation failed', 'error', 6000);
-                            toast('comfy-fail', { kind: 'warn', title: 'Installation failed', body: res.error || 'Unknown error' });
+                            setStatus(res.error || T('modal.comfyFailed'), 'error', 6000);
+                            toast('comfy-fail', { kind: 'warn', title: T('modal.comfyFailed'), body: res.error || T('modal.comfyFailed') });
                         }
                     } catch (e) {
-                        setStatus(`Error: ${e.message}`, 'error', 6000);
+                        setStatus(T('st.failPrefix', { err: e.message }), 'error', 6000);
                     }
                 }
             }
@@ -635,20 +665,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /* ---------- keyboard shortcuts ---------- */
     const SHORTCUTS = [
-        ['Ctrl+O', 'Open model'], ['Ctrl+S', 'Export model'], ['Ctrl+Shift+S', 'Save JSON report'],
-        ['Ctrl+Z', 'Undo'], ['Ctrl+Y / Ctrl+Shift+Z', 'Redo'], ['Ctrl+R', 'Repair mesh'], ['Ctrl+U', 'Re-analyse'],
-        ['Click', 'Select a piece'], ['Shift+click', 'Add or remove a piece'],
-        ['Ctrl+A', 'Select all pieces'], ['Alt+drag', 'Select pieces inside a box'],
-        ['Shift+click', 'Add or remove a piece'], ['Right-click', 'What can be done to this piece'], ['Delete', 'Remove selected pieces'], ['R', 'Rotation gizmo'],
-        ['F', 'Fit view'], ['W', 'Wireframe'], ['E', 'Open-edge highlight'], ['G', 'Build plate'],
-        ['1 – 7', 'Top · Front · Right · Iso · Bottom · Back · Left'], ['Esc', 'Clear highlight / close dialog'],
-        ['Ctrl+`', 'Console'], ['Ctrl+N', 'Close model / start over'],
-        ['Del', 'Remove ticked pieces, or close the model'], ['?', 'This list'],
+        ['Ctrl+O', 'keys.open'], ['Ctrl+S', 'keys.export'], ['Ctrl+Shift+S', 'keys.report'],
+        ['Ctrl+Z', 'keys.undo'], ['Ctrl+Y / Ctrl+Shift+Z', 'keys.redo'], ['Ctrl+R', 'keys.repair'], ['Ctrl+U', 'keys.reanalyse'],
+        ['Click', 'keys.click'], ['Shift+click', 'keys.shiftClick'],
+        ['Ctrl+A', 'keys.selectAll'], ['Alt+drag', 'keys.altDrag'],
+        ['Shift+click', 'keys.shiftClick'], ['Right-click', 'keys.rightClick'], ['Delete', 'keys.delete'], ['R', 'keys.gizmo'],
+        ['F', 'keys.fit'], ['W', 'keys.wire'], ['E', 'keys.edges'], ['G', 'keys.plate'],
+        ['1 – 7', 'keys.views'], ['Esc', 'keys.esc'],
+        ['Ctrl+`', 'keys.console'], ['Ctrl+N', 'keys.new'],
+        ['Del', 'keys.del'], ['?', 'keys.help'],
     ];
     function showHelp() {
-        openModal('Keyboard shortcuts',
-            `<div class="keys">${SHORTCUTS.map(([k, d]) => `<kbd>${k}</kbd><span>${d}</span>`).join('')}</div>`,
-            [{ label: 'Close', primary: true }]);
+        openModal(T('modal.helpTitle'),
+            `<div class="keys">${SHORTCUTS.map(([k, d]) => `<kbd>${k}</kbd><span>${T(d)}</span>`).join('')}</div>`,
+            [{ label: T('modal.close'), primary: true }]);
     }
     $('btnHelp').addEventListener('click', showHelp);
     const VIEWS = ['top', 'front', 'right', 'iso', 'bottom', 'back', 'left'];
@@ -749,7 +779,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     setStatus(res.error, 'error', 5000);
                 }
             } catch (e) {
-                setStatus(`Rotate failed: ${e.message}`, 'error', 5000);
+                setStatus(T('orient.rotateFailed', { err: e.message }), 'error', 5000);
             }
         });
     };
@@ -770,26 +800,27 @@ document.addEventListener('DOMContentLoaded', () => {
         ring.style.setProperty('--pct', a.score);
         ring.style.setProperty('--ring-color', color);
         $('scoreValue').textContent = a.score;
-        $('verdict').textContent = a.verdict;
+        $('verdict').textContent = verdictText(a.verdict);
         const crit = a.issues.filter(i => i.severity === 'critical').length;
         const warn = a.issues.filter(i => i.severity === 'warning').length;
         $('verdictSub').textContent = a.issues.length === 0
-            ? 'Closed, consistently oriented solid. Ready to slice.'
-            : `${crit} critical · ${warn} warnings · ${a.issues.length - crit - warn} notes`;
+            ? T('health.clean')
+            : T('verdict.critWarnNotes', { c: crit, w: warn, n: a.issues.length - crit - warn });
 
         // issues
         const list = $('issueList');
         list.innerHTML = '';
         $('issueCount').textContent = a.issues.length || '';
         if (a.issues.length === 0) {
-            list.innerHTML = '<li class="ok"><div><div class="t">No problems found</div><div class="d">Mesh is watertight, manifold and correctly oriented.</div></div></li>';
+            list.innerHTML = `<li class="ok"><div><div class="t">${T('diag.noIssues')}</div><div class="d">${T('diag.noIssuesSub')}</div></div></li>`;
         }
         for (const it of a.issues) {
             const li = document.createElement('li');
             li.className = it.severity;
             const loc = it.location;
-            const where = loc ? `<div class="loc">${loc.total === 1 ? '1 spot' : fmt(loc.total) + ' spots'} · region ≈ ${loc.extent} mm</div>` : '';
-            li.innerHTML = `<div><div class="t">${it.title}</div><div class="d">${it.detail}</div>${where}</div>`;
+            const said = issueText(it, s);
+            const where = loc ? `<div class="loc">${Tp('pl.spots', loc.total, { e: loc.extent })}</div>` : '';
+            li.innerHTML = `<div><div class="t">${said.title}</div><div class="d">${said.detail}</div>${where}</div>`;
             if (loc) {
                 li.classList.add('locatable');
                 li.addEventListener('click', () => {
@@ -798,7 +829,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (on) { window.viewer.clearHighlight(); return; }
                     li.classList.add('active');
                     window.viewer.highlight(loc);
-                    logLine(`Located ${it.title}: ${loc.total} spot(s) around (${loc.center.join(', ')}) mm`);
+                    logLine(T('diag.located', { title: said.title, n: loc.total, center: loc.center.join(', ') }));
                 });
             }
             list.appendChild(li);
@@ -817,10 +848,10 @@ document.addEventListener('DOMContentLoaded', () => {
         $('sEdges').textContent = fmt(s.edge_count);
         $('sBodies').textContent = fmt(s.body_count);
         $('sDims').textContent = s.dimensions_mm ? `${s.dimensions_mm[0]} × ${s.dimensions_mm[1]} × ${s.dimensions_mm[2]} mm` : '–';
-        $('sVolume').textContent = s.is_watertight ? `${s.volume_cm3} cm³` : 'n/a (open)';
+        $('sVolume').textContent = s.is_watertight ? `${s.volume_cm3} cm³` : T('stats.open');
         $('sArea').textContent = `${s.surface_area_cm2} cm²`;
         flag('sWater', s.is_watertight, yesno(s.is_watertight));
-        flag('sWinding', s.is_winding_consistent, s.is_winding_consistent ? 'Consistent' : 'Mixed');
+        flag('sWinding', s.is_winding_consistent, s.is_winding_consistent ? T('stats.consistent') : T('stats.mixed'));
         flag('sBoundary', s.boundary_edges === 0, fmt(s.boundary_edges));
         flag('sNonMan', s.nonmanifold_edges === 0, fmt(s.nonmanifold_edges));
         $('sGenus').textContent = s.genus == null ? '–' : s.genus;
@@ -833,10 +864,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderReport(report) {
+        lastReport = report;
         const fixList = $('fixList');
         fixList.innerHTML = '';
         if (!report.fixes || report.fixes.length === 0) {
-            fixList.innerHTML = '<li class="none">Nothing needed changing.</li>';
+            fixList.innerHTML = `<li class="none">${T('repair.nothing')}</li>`;
         }
         for (const f of report.fixes || []) {
             const li = document.createElement('li');
@@ -846,13 +878,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (report.passes > 1) {
             const li = document.createElement('li');
             li.className = 'none';
-            li.textContent = `Repair ran ${report.passes} passes until the mesh stopped changing.`;
+            li.textContent = T('repair.passes', { n: report.passes });
             fixList.appendChild(li);
         }
         if (report.after && report.after.issues.length) {
             const li = document.createElement('li');
             li.className = 'warn';
-            li.textContent = `${report.after.issues.length} issue(s) remain — see Diagnostics (verified on the repaired mesh).`;
+            li.textContent = T('repair.remain', { n: report.after.issues.length });
             fixList.appendChild(li);
         }
         const table = $('changeTable');
@@ -864,14 +896,14 @@ document.addEventListener('DOMContentLoaded', () => {
             table.appendChild(tr);
         }
         if (!report.changes || report.changes.length === 0) {
-            table.innerHTML = '<tr><td class="muted">No measurable change.</td></tr>';
+            table.innerHTML = `<tr><td class="muted">${T('repair.noChange')}</td></tr>`;
         }
         $('report').classList.remove('hidden');
     }
 
     /* ---------- loading ---------- */
     async function loadFile(path) {
-        if (!api()) { setStatus('Desktop bridge not available', 'error', 4000); return; }
+        if (!api()) { setStatus(T('st.noBridge'), 'error', 4000); return; }
         const name = path.split(/[\\/]/).pop();
 
         // A file holding more than one object is asked about before anything is
@@ -879,37 +911,37 @@ document.addEventListener('DOMContentLoaded', () => {
         let keep = null;
         if (window.meshwrightParts) {
             const chosen = await window.meshwrightParts.choose(path);
-            if (chosen === false) { setStatus('Cancelled', 'ok', 2000); return; }
+            if (chosen === false) { setStatus(T('modal.cancelled'), 'ok', 2000); return; }
             keep = chosen;
         }
 
-        setStatus(`Loading ${name}…`);
+        setStatus(T('st.loadingName', { name: name }));
         openConsole(true);
         $('report').classList.add('hidden');
-        setLoadingUI(true, `Loading ${name}…`);
+        setLoadingUI(true, T('st.loadingName', { name: name }));
         isModelLoading = true;
         const t0 = performance.now();
         onProgress({
             state: 'start',
             operation: 'load',
-            label: `Loading ${name}`,
+            label: T('st.loadingName', { name: name }),
             eta: 4.0,
-            eta_text: 'reading model…'
+            eta_text: T('st.reading')
         });
         try {
             const res = await api().load_model_file(path, keep);
             if (!res.success) {
                 isModelLoading = false;
-                onProgress({ state: 'error', operation: 'load', label: `Failed loading ${name}`, error: res.error });
+                onProgress({ state: 'error', operation: 'load', label: T('st.failLoadName', { name: name }), error: res.error });
                 setStatus(res.error, 'error', 6000);
                 return;
             }
             onProgress({
                 state: 'progress',
                 operation: 'load',
-                label: `Rendering ${name}…`,
+                label: T('st.renderingName', { name: name }),
                 percent: 92,
-                body: 'Preparing 3D geometry…'
+                body: T('st.preparingGeo')
             });
             await new Promise(r => requestAnimationFrame(r));
             showModel(res);
@@ -918,14 +950,14 @@ document.addEventListener('DOMContentLoaded', () => {
             onProgress({
                 state: 'done',
                 operation: 'load',
-                label: `Loaded ${name}`,
+                label: T('st.loadedName', { name: name }),
                 elapsed: elapsed
             });
-            setStatus(`Analysed ${name}`, 'ok', 2500);
+            setStatus(T('st.analysed', { name: name }), 'ok', 2500);
         } catch (e) {
             isModelLoading = false;
-            onProgress({ state: 'error', operation: 'load', label: `Failed loading ${name}`, error: e.message });
-            setStatus(`Failed: ${e.message}`, 'error', 6000);
+            onProgress({ state: 'error', operation: 'load', label: T('st.failLoadName', { name: name }), error: e.message });
+            setStatus(T('st.failPrefix', { err: e.message }), 'error', 6000);
         } finally {
             isModelLoading = false;
             setLoadingUI(false);
@@ -976,9 +1008,8 @@ document.addEventListener('DOMContentLoaded', () => {
         ring.style.setProperty('--pct', 0);
         ring.style.setProperty('--ring-color', 'var(--line)');
         $('scoreValue').textContent = '–';
-        $('verdict').textContent = 'No model loaded';
-        $('verdictSub').textContent = 'Open a file to run diagnostics. '
-            + 'Drag to orbit, scroll to zoom, right-drag to pan.';
+        $('verdict').textContent = T('health.none');
+        $('verdictSub').textContent = T('health.noneSub');
         for (const id of ['sFaces', 'sVerts', 'sEdges', 'sBodies', 'sDims', 'sVolume',
                           'sArea', 'sWater', 'sWinding', 'sBoundary', 'sNonMan', 'sGenus']) {
             if ($(id)) $(id).textContent = '–';
@@ -1001,31 +1032,28 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const res = await api().close_model();
                 if (res && res.success === false) {
-                    setStatus(res.error || 'Could not close the model', 'error', 5000);
+                    setStatus(res.error || T('st.closeFailed'), 'error', 5000);
                     return;
                 }
             } catch (e) {
-                setStatus(`Could not close the model: ${e.message}`, 'error', 5000);
+                setStatus(T('st.closeFailedErr', { err: e.message }), 'error', 5000);
                 return;
             }
         }
         clearWorkspaceUI();
-        setStatus('Workspace cleared — open a model to start', 'ok', 3000);
+        setStatus(T('st.cleared'), 'ok', 3000);
     }
 
     /* Confirm before throwing work away; an unmodified model (state #1, straight
        from disk) costs nothing to reopen, so that case goes straight through. */
     function requestReset(force) {
         if (!hasModel) { clearWorkspaceUI(); return; }
-        const modified = current && $('stateBadge').textContent !== 'state #1';
+        const modified = current && $('stateBadge').textContent !== T('st.state', { n: 1 });
         if (!force && !modified) { resetWorkspace(); return; }
         const name = $('fileName').textContent || 'the current model';
-        openModal('Close the model?',
-            `<p><strong>${name}</strong> will be removed from the workspace.</p>
-             <p>${modified ? 'Unsaved changes and the whole undo history are discarded.'
-                           : 'Nothing has been changed, so nothing is lost.'}
-             Export first if you want to keep the result.</p>`,
-            [{ label: 'Keep working' }, { label: 'Close model', primary: true, action: resetWorkspace }]);
+        openModal(T('st.closeTitle'),
+            T('st.closeBody', { name: name, detail: modified ? T('st.closeDirty') : T('st.closeClean') }),
+            [{ label: T('modal.keepWorking') }, { label: T('modal.closeModel'), primary: true, action: resetWorkspace }]);
     }
 
     $('btnNew').addEventListener('click', () => requestReset(false));
@@ -1033,34 +1061,34 @@ document.addEventListener('DOMContentLoaded', () => {
     /* The demo model is built in memory by Python — nothing is downloaded and
        no file is written. It exists so a fresh install can be tried at once. */
     $('btnDemo').addEventListener('click', async () => {
-        if (!api()) { setStatus('Desktop bridge not available', 'error', 4000); return; }
-        setStatus('Building the demo model…');
+        if (!api()) { setStatus(T('st.noBridge'), 'error', 4000); return; }
+        setStatus(T('st.buildingDemo'));
         openConsole(true);
         $('report').classList.add('hidden');
-        setLoadingUI(true, 'Building demo model…');
+        setLoadingUI(true, T('st.buildingDemoLabel'));
         isModelLoading = true;
         const t0 = performance.now();
         onProgress({
             state: 'start',
             operation: 'load',
-            label: 'Building demo model',
+            label: T('st.buildingDemoLabel'),
             eta: 1.0,
-            eta_text: 'a moment…'
+            eta_text: T('st.moment')
         });
         try {
             const res = await api().load_demo_model();
             if (!res.success) {
                 isModelLoading = false;
-                onProgress({ state: 'error', operation: 'load', label: 'Failed loading demo model', error: res.error });
+                onProgress({ state: 'error', operation: 'load', label: T('st.demoFailLoad'), error: res.error });
                 setStatus(res.error, 'error', 6000);
                 return;
             }
             onProgress({
                 state: 'progress',
                 operation: 'load',
-                label: 'Rendering demo model…',
+                label: T('st.renderingDemo'),
                 percent: 92,
-                body: 'Preparing 3D geometry…'
+                body: T('st.preparingGeo')
             });
             await new Promise(r => requestAnimationFrame(r));
             showModel(res);
@@ -1069,17 +1097,16 @@ document.addEventListener('DOMContentLoaded', () => {
             onProgress({
                 state: 'done',
                 operation: 'load',
-                label: 'Loaded demo model',
+                label: T('st.loadedDemo'),
                 elapsed: elapsed
             });
-            setStatus('Demo model loaded — press Repair to see it fixed', 'ok', 5000);
-            toast('demo', { kind: 'info', title: 'Built-in demo model',
-                body: 'A sphere with a hole, a patch of flipped faces and a loose second piece. ' +
-                      'This is a test object, not a printable part.', ms: 9000 });
+            setStatus(T('st.demoHint'), 'ok', 5000);
+            toast('demo', { kind: 'info', title: T('st.demoTitle'),
+                body: T('st.demoBody'), ms: 9000 });
         } catch (e) {
             isModelLoading = false;
-            onProgress({ state: 'error', operation: 'load', label: 'Failed loading demo model', error: e.message });
-            setStatus(`Failed: ${e.message}`, 'error', 6000);
+            onProgress({ state: 'error', operation: 'load', label: T('st.demoFailLoad'), error: e.message });
+            setStatus(T('st.failPrefix', { err: e.message }), 'error', 6000);
         } finally {
             isModelLoading = false;
             setLoadingUI(false);
@@ -1113,12 +1140,12 @@ document.addEventListener('DOMContentLoaded', () => {
             },
         },
         confirm: (title, bodyHtml, confirmLabel, onConfirm) => openModal(title, bodyHtml,
-            [{ label: 'Cancel' }, { label: confirmLabel, primary: true, action: onConfirm }]),
+            [{ label: T('modal.cancel') }, { label: confirmLabel, primary: true, action: onConfirm }]),
     };
 
     /* ---------- repair ---------- */
     $('btnRepair').addEventListener('click', async () => {
-        setStatus('Repairing…');
+        setStatus(T('repair.running'));
         $('btnRepair').disabled = true;
         try {
             const res = await api().auto_fix_mesh($('chkStrict').checked, false);
@@ -1129,12 +1156,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const ok = res.analysis && res.analysis.stats.is_watertight;
             const fixes = (res.report.fixes || []).length;
             toast('repair-result', { kind: ok ? 'ok' : 'warn',
-                title: ok ? 'Repair complete — watertight' : 'Repair finished — open edges remain',
-                body: fixes ? `${fixes} fix(es) applied over ${res.report.passes} pass(es)` : 'Nothing needed changing',
+                title: ok ? T('repair.doneTight') : T('repair.doneOpen'),
+                body: fixes ? T('repair.fixesApplied', { n: fixes, p: res.report.passes }) : T('repair.nothing'),
                 ms: 12000 });
-            setStatus(ok ? 'Repair complete — mesh is watertight' : 'Repair finished — open edges remain', ok ? 'ok' : 'error', 4000);
+            setStatus(ok ? T('repair.okTight') : T('repair.okOpen'), ok ? 'ok' : 'error', 4000);
         } catch (e) {
-            setStatus(`Repair failed: ${e.message}`, 'error', 6000);
+            setStatus(T('repair.failed', { err: e.message }), 'error', 6000);
         } finally {
             $('btnRepair').disabled = false;
         }
@@ -1142,35 +1169,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /* ---------- re-analyse / revert ---------- */
     $('btnReanalyse').addEventListener('click', async () => {
-        setStatus('Re-analysing current mesh…');
+        setStatus(T('repair.reanalysing'));
         try {
             const res = await api().analyze_current();
             if (!res.success) { setStatus(res.error, 'error', 5000); return; }
             renderAnalysis(res.analysis);
-            setStatus(`Re-analysed: ${res.analysis.verdict}`, res.analysis.score >= 80 ? 'ok' : 'error', 4000);
+            setStatus(T('repair.reanalysed', { verdict: verdictText(res.analysis.verdict) }), res.analysis.score >= 80 ? 'ok' : 'error', 4000);
         } catch (e) {
-            setStatus(`Analysis failed: ${e.message}`, 'error', 5000);
+            setStatus(T('repair.analysisFailed', { err: e.message }), 'error', 5000);
         }
     });
-    $('btnRevert').addEventListener('click', () => openModal('Revert to original?',
-        '<p>All changes in this session will be discarded and the file reloaded as it was opened. You can still undo this.</p>',
-        [{ label: 'Cancel' }, { label: 'Revert', primary: true, action: doRevert }]));
+    $('btnRevert').addEventListener('click', () => openModal(T('repair.revertTitle'),
+        T('repair.revertBody'),
+        [{ label: T('modal.cancel') }, { label: T('modal.revertGo'), primary: true, action: doRevert }]));
     async function doRevert() {
-        setStatus('Reverting to the file as loaded…');
+        setStatus(T('repair.reverting'));
         isModelLoading = true;
         const t0 = performance.now();
         onProgress({
             state: 'start',
             operation: 'load',
-            label: 'Reverting to original',
+            label: T('repair.revertingLabel'),
             eta: 1.0,
-            eta_text: 'restoring model…'
+            eta_text: T('repair.restoring')
         });
         try {
             const res = await api().revert_to_original();
             if (!res.success) {
                 isModelLoading = false;
-                onProgress({ state: 'error', operation: 'load', label: 'Revert failed', error: res.error });
+                onProgress({ state: 'error', operation: 'load', label: T('repair.revertFailed'), error: res.error });
                 setStatus(res.error, 'error', 5000);
                 return;
             }
@@ -1178,9 +1205,9 @@ document.addEventListener('DOMContentLoaded', () => {
             onProgress({
                 state: 'progress',
                 operation: 'load',
-                label: 'Rendering original…',
+                label: T('repair.renderingOriginal'),
                 percent: 92,
-                body: 'Updating 3D viewport…'
+                body: T('repair.updatingViewport')
             });
             await new Promise(r => requestAnimationFrame(r));
             showModel(res);
@@ -1189,31 +1216,31 @@ document.addEventListener('DOMContentLoaded', () => {
             onProgress({
                 state: 'done',
                 operation: 'load',
-                label: 'Reverted to original',
+                label: T('repair.reverted'),
                 elapsed: elapsed
             });
-            setStatus('Reverted to original', 'ok', 3000);
+            setStatus(T('repair.revertedBack'), 'ok', 3000);
         } catch (e) {
             isModelLoading = false;
-            onProgress({ state: 'error', operation: 'load', label: 'Revert failed', error: e.message });
-            setStatus(`Revert failed: ${e.message}`, 'error', 5000);
+            onProgress({ state: 'error', operation: 'load', label: T('repair.revertFailed'), error: e.message });
+            setStatus(T('repair.revertFailedErr', { err: e.message }), 'error', 5000);
         } finally {
             isModelLoading = false;
         }
     }
 
     async function forceRepair() {
-        setStatus('Repairing (forced)…');
+        setStatus(T('repair.forced'));
         const res = await api().auto_fix_mesh($('chkStrict').checked, true);
         if (!res.success) { setStatus(res.error, 'error', 6000); return; }
         showModel(res);
         renderReport(res.report);
-        setStatus('Repair applied (forced)', 'ok', 4000);
+        setStatus(T('repair.appliedForced'), 'ok', 4000);
     }
 
     /* ---------- slivers ---------- */
     $('btnSlivers').addEventListener('click', async () => {
-        setStatus('Fixing sliver triangles…');
+        setStatus(T('repair.sliversRunning'));
         $('btnSlivers').disabled = true;
         try {
             const res = await api().fix_sliver_faces(1.0, false);
@@ -1221,13 +1248,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!res.success) { setStatus(res.error, 'error', 6000); return; }
             showModel(res);
             const i = res.info;
-            const left = i.after ? ` · ${i.after} left in place (removing them would tear the surface)` : '';
+            const left = i.after ? T('repair.sliversLeft', { n: i.after }) : '';
             toast('slivers', { kind: i.after ? 'warn' : 'ok',
-                title: `Slivers ${i.before} → ${i.after}`,
-                body: `merged ${i.collapsed}, flipped ${i.flipped}${left}`, ms: 12000 });
-            setStatus(`Slivers ${i.before} → ${i.after} (merged ${i.collapsed}, flipped ${i.flipped})`, i.after ? 'rejected' : 'ok', 5000);
+                title: T('repair.sliversTitle', { a: i.before, b: i.after }),
+                body: T('repair.sliversBody', { c: i.collapsed, f: i.flipped, left: left }), ms: 12000 });
+            setStatus(T('repair.sliversStatus', { a: i.before, b: i.after, c: i.collapsed, f: i.flipped }), i.after ? 'rejected' : 'ok', 5000);
         } catch (e) {
-            setStatus(`Sliver fix failed: ${e.message}`, 'error', 6000);
+            setStatus(T('repair.sliversFailed', { err: e.message }), 'error', 6000);
         } finally {
             $('btnSlivers').disabled = false;
         }
@@ -1239,9 +1266,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await api().export_report();
             if (res.canceled) return;
             if (!res.success) { setStatus(res.error, 'error', 5000); return; }
-            setStatus(`Report saved: ${res.path.split(/[\\/]/).pop()}`, 'ok', 4000);
+            setStatus(T('repair.reportSaved', { name: res.path.split(/[\\/]/).pop() }), 'ok', 4000);
         } catch (e) {
-            setStatus(`Report failed: ${e.message}`, 'error', 5000);
+            setStatus(T('repair.reportFailed', { err: e.message }), 'error', 5000);
         }
     });
 
@@ -1295,8 +1322,8 @@ document.addEventListener('DOMContentLoaded', () => {
     $('btnReduce').addEventListener('click', async () => {
         if (!current) return;
         const target = Math.max(20, +targetInput.value || 20);
-        const label = { quadriflow: 'Smart retopology', quadric: 'Decimating', isotropic: 'Uniform remeshing' }[reduceMode];
-        setStatus(`${label} to ${fmt(target)} faces…`);
+        const label = { quadriflow: T('reduce.smartLabel'), quadric: T('reduce.decimating'), isotropic: T('reduce.uniforming') }[reduceMode];
+        setStatus(T('reduce.toFaces', { label: label, n: fmt(target) }));
         $('reduceResult').textContent = '';
         $('btnReduce').disabled = true;
         try {
@@ -1304,20 +1331,28 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!res.success) { setStatus(res.error, 'error', 6000); return; }
             showModel(res);
             const i = res.info, d = i.deviation;
-            toast('reduce-result', { kind: d.relative_pct < 5 ? 'ok' : 'warn',
-                title: `Reduced to ${fmt(i.final_faces)} faces`,
-                body: `${i.reduction_percentage}% fewer · ${i.method_used} · deviation max ${d.max_mm} mm (${d.relative_pct}%)`,
-                ms: 12000 });
-            const cls = d.relative_pct < 2 ? 'dev-ok' : 'dev-warn';
-            $('reduceResult').innerHTML = `${fmt(i.initial_faces)} → <strong>${fmt(i.final_faces)}</strong> faces (${i.method_used}) · ` +
-                `<span class="${cls}">deviation max ${d.max_mm} mm (${d.relative_pct}% of size), mean ${d.mean_mm} mm</span>`;
-            setStatus(`Reduced ${i.reduction_percentage}% → ${fmt(i.final_faces)} faces`, 'ok', 4000);
+            lastReduce = { i: i, d: d };
+            renderReduceResult();
+            setStatus(T('reduce.doneStatus', { p: i.reduction_percentage, n: fmt(i.final_faces) }), 'ok', 4000);
         } catch (e) {
-            setStatus(`Reduction failed: ${e.message}`, 'error', 6000);
+            setStatus(T('reduce.failed', { err: e.message }), 'error', 6000);
         } finally {
             $('btnReduce').disabled = false;
         }
     });
+
+    let lastReduce = null;
+    function renderReduceResult() {
+        if (!lastReduce) return;
+        const i = lastReduce.i, d = lastReduce.d;
+        toast('reduce-result', { kind: d.relative_pct < 5 ? 'ok' : 'warn',
+            title: T('reduce.doneTitle', { n: fmt(i.final_faces) }),
+            body: T('reduce.doneBody', { p: i.reduction_percentage, m: i.method_used, d: d.max_mm, r: d.relative_pct }),
+            ms: 12000 });
+        const cls = d.relative_pct < 2 ? 'dev-ok' : 'dev-warn';
+        $('reduceResult').innerHTML = `${fmt(i.initial_faces)} → <strong>${fmt(i.final_faces)}</strong> ${T('reduce.faces')} (${i.method_used}) · ` +
+            `<span class="${cls}">deviation max ${d.max_mm} mm (${d.relative_pct}% of size), mean ${d.mean_mm} mm</span>`;
+    }
 
     /* A file that is not a closed solid slices as a single-wall shell with no
        infill, which is invisible until the print is half done — so say it here. */
@@ -1326,8 +1361,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (warnings.length === 0) return;   // Python already logged them to the console
         toast('export-warning', {
             kind: 'warn',
-            title: result.is_solid ? 'Saved — check this before printing'
-                                   : 'Saved, but this is not a printable solid',
+            title: result.is_solid ? T('export.warnCheck')
+                                   : T('export.warnSolid'),
             body: warnings.join(' '),
             sticky: true
         });
@@ -1336,16 +1371,16 @@ document.addEventListener('DOMContentLoaded', () => {
     /* ---------- export ---------- */
     $('btnExport').addEventListener('click', async () => {
         const format = $('selExportFormat').value;
-        setStatus(`Exporting ${format.toUpperCase()}…`);
+        setStatus(T('export.running', { f: format.toUpperCase() }));
         $('btnExport').disabled = true;
         try {
             const res = await api().export_model_file(format, $('selUnit').value, $('chkAlign').checked);
             if (res.canceled) { status.classList.add('hidden'); return; }
             if (!res.success) { setStatus(res.error, 'error', 6000); return; }
-            setStatus(`Saved ${res.result.filename} (${res.result.file_size_mb} MB)`, 'ok', 4000);
+            setStatus(T('export.saved', { name: res.result.filename, mb: res.result.file_size_mb }), 'ok', 4000);
             showExportWarnings(res.result);
         } catch (e) {
-            setStatus(`Export failed: ${e.message}`, 'error', 6000);
+            setStatus(T('export.failed', { err: e.message }), 'error', 6000);
         } finally {
             $('btnExport').disabled = false;
         }
@@ -1360,11 +1395,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }));
     $('btnWire').addEventListener('click', e => {
         const heavy = current && current.stats.face_count > 800000;
-        if (heavy && !window.viewer.showWire) setStatus('Building wireframe for a very dense mesh…', 'busy');
+        if (heavy && !window.viewer.showWire) setStatus(T('st.wireHeavy'), 'busy');
         const on = window.viewer.toggleWire();
         e.currentTarget.classList.toggle('active', on);
         if (heavy) {
-            if (on) setStatus(`Wireframe on ${fmt(current.stats.face_count)} faces — this slows the viewport`, 'rejected', 5000);
+            if (on) setStatus(T('st.wireOn', { n: fmt(current.stats.face_count) }), 'rejected', 5000);
             else status.classList.add('hidden');
         }
     });
@@ -1374,4 +1409,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const light = () => window.viewer.setLight(+$('lightAz').value, +$('lightEl').value, +$('lightPow').value);
     ['lightAz', 'lightEl', 'lightPow'].forEach(id => $(id).addEventListener('input', light));
+
+    /* ---------- language ----------
+       Static markup translates itself (data-i18n); everything rendered from
+       state is rebuilt here so nothing is lost: model, undo stack, selection. */
+    function refreshTexts() {
+        $('btnLang').textContent = I18N.getLang() === 'ru' ? 'РУ' : 'EN';
+        if (current) renderAnalysis(current);
+        if (lastReport && !$('report').classList.contains('hidden')) renderReport(lastReport);
+        if (lastStateId != null) $('stateBadge').textContent = T('st.state', { n: lastStateId });
+        if (!isModelLoading) $('emptyPrompt').textContent = T('empty.prompt');
+        if (shellList.length >= 2 && !$('cardShells').classList.contains('hidden')) {
+            const keep = new Set(shellSelection);
+            renderShells(shellList, true);
+            shellSelection = keep;
+            syncShells();
+        }
+        if (lastReduce && $('reduceResult').textContent) renderReduceResult();
+        if (lastAboutInfo && !$('about').classList.contains('hidden')) {
+            renderAboutFoot(lastAboutInfo);
+            const t = $('aboutLibs');
+            t.innerHTML = '';
+            for (const [name, ver] of Object.entries(lastAboutInfo.libraries)) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${name}</td><td class="${ver ? '' : 'missing'}">${ver || T('about.notInstalled')}</td><td>${T(LIB_ROLES[name] || '')}</td>`;
+                t.appendChild(tr);
+            }
+        }
+    }
+    $('btnLang').addEventListener('click', () => I18N.setLang(I18N.getLang() === 'ru' ? 'en' : 'ru'));
+    I18N.onChange(refreshTexts);
+    // First paint: the markup ships in English, so an RU preference needs one pass.
+    I18N.applyStatic(document);
+    refreshTexts();
 });

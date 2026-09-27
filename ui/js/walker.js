@@ -29,6 +29,14 @@
     // walking an empty rectangle across the screen.
     let available = false;
 
+    function refreshTexts() {
+        if (!root) return;
+        root.setAttribute('aria-label', T('walker.coffee'));
+        root.title = T('walker.coffee');
+        const p = root.querySelector('.walker-balloon-text');
+        if (p) p.innerHTML = T('walker.balloon');
+    }
+
     function build() {
         if (root) return root;
         root = document.createElement('div');
@@ -36,11 +44,10 @@
         root.id = 'walker';
         root.setAttribute('role', 'button');
         root.setAttribute('tabindex', '0');
-        root.setAttribute('aria-label', 'Buy Vlad a coffee');
-        root.title = 'Buy Vlad a coffee';
+        refreshTexts();
         root.innerHTML = `
             <div class="walker-balloon" hidden>
-                <p class="walker-balloon-text">Enjoying Meshwright?<br><b>Buy Vlad a coffee!</b></p>
+                <p class="walker-balloon-text">${T('walker.balloon')}</p>
                 <span class="walker-balloon-link">geekatplay.gumroad.com/coffee</span>
             </div>
             <div class="walker-bob">
@@ -217,4 +224,6 @@
         show: toggleBalloon,
         get available() { return available; },
     };
+
+    if (window.I18N) window.I18N.onChange(refreshTexts);
 })();
